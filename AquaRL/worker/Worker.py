@@ -75,7 +75,7 @@ class EvaluateWorker:
         return ave_r
 
 
-class SampleWorker:
+class ampleWorker:
     def __init__(self, env, env_args: EnvArgs, data_pool, policy):
         self.data_pool = data_pool
         self.policy = policy

@@ -2,27 +2,28 @@ from AquaRL.algo.BaseAlgo import BaseAlgo
 import tensorflow as tf
 from AquaRL.pool.LocalPool import LocalPool
 import numpy as np
+from AquaRL.args import GAILParameters
 
 
 # TODO: need to implement
 class GAIL(BaseAlgo):
-    def __init__(self, expert_data_pool: LocalPool, data_pool: LocalPool, discriminator):
-        super().__init__(hyper_parameters=None, data_pool=data_pool)
+    def __init__(self, parameters: GAILParameters, expert_data_pool: LocalPool, data_pool: LocalPool, discriminator):
+        super().__init__(hyper_parameters=parameters, data_pool=data_pool)
 
         self.expert_data_pool = expert_data_pool
 
         self.discriminator = discriminator
 
+        # merge data
         concat_data = np.concatenate((self.expert_data_pool.observation_buffer, self.expert_data_pool.action_buffer),
                                      axis=1)
-
         self.tf_expert_s_a = self.expert_data_pool.convert_to_tensor(concat_data)
 
-        self.discriminator_optimizer = tf.optimizers.Adam(learning_rate=3e-3)
+        self.discriminator_optimizer = tf.optimizers.Adam(learning_rate=self.hyper_parameters.learning_rate)
 
     def _optimize(self):
         state_action = np.concatenate((self.data_pool.observation_buffer, self.data_pool.action_buffer), axis=1)
-        for i in range(5):
+        for i in range(self.hyper_parameters.update_times):
             self.train_discriminator(state_action)
 
     @tf.function

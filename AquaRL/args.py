@@ -48,3 +48,9 @@ class PPOHyperParameters:
         self.scale = scale
         self.center_adv = center_adv
         self.batch_size = batch_size
+
+
+class GAILParameters:
+    def __init__(self, learning_rate=3e-3, update_times=2):
+        self.learning_rate = learning_rate
+        self.update_times = update_times

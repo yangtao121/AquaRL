@@ -11,7 +11,7 @@ class BaseAlgo(abc.ABC):
         self.data_pool = data_pool  # memery share
 
         log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.min_summary_writer = tf.summary.create_file_writer(log_dir + "/main")
+        self.min_summary_writer = tf.summary.create_file_writer(log_dir + "/min")
         self.max_summary_writer = tf.summary.create_file_writer(log_dir + "/max")
         self.main_summary_writer = tf.summary.create_file_writer(log_dir + "/average")
 
