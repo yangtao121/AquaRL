@@ -30,7 +30,8 @@ env_args_expert = EnvArgs(
 )
 
 hyper_parameter = PPOHyperParameters(
-    batch_size=200
+    batch_size=200,
+    update_steps=5
 )
 
 gail_parameters = GAILParameters()
@@ -87,6 +88,6 @@ gail = GAIL(gail_parameters, expert_data_pool, data_pool, discriminator)
 
 for i in range(env_args.epochs):
     worker.sample()
-    gail._optimize()
+    gail.optimize()
     # worker.sample()
     ppo.optimize()

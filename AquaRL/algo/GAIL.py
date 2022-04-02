@@ -26,6 +26,27 @@ class GAIL(BaseAlgo):
         for i in range(self.hyper_parameters.update_times):
             self.train_discriminator(state_action)
 
+        entropy = self.cal_entropy(state_action)
+
+        print("Entropy:{}".format(entropy))
+
+        with self.main_summary_writer.as_default():
+            tf.summary.scalar("entropy", entropy, self.epoch)
+
+    def optimize(self):
+        self._optimize()
+        self.epoch += 1
+
+    @tf.function
+    def cal_entropy(self, state_action):
+        expert_reward = self.discriminator(self.tf_expert_s_a)
+        reward = self.discriminator(state_action)
+
+        loss_expert = tf.reduce_mean(tf.math.log(tf.clip_by_value(expert_reward, 0.01, 1)))
+        loss_agent = tf.reduce_mean(tf.math.log(tf.clip_by_value(1 - reward, 0.01, 1)))
+        loss = loss_agent + loss_expert
+        return loss
+
     @tf.function
     def train_discriminator(self, state_action):
         with tf.GradientTape() as tape:
