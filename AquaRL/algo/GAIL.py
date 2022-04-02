@@ -1,0 +1,42 @@
+from AquaRL.algo.BaseAlgo import BaseAlgo
+import tensorflow as tf
+from AquaRL.pool.LocalPool import LocalPool
+import numpy as np
+
+
+# TODO: need to implement
+class GAIL(BaseAlgo):
+    def __init__(self, expert_data_pool: LocalPool, data_pool: LocalPool, discriminator):
+        super().__init__(hyper_parameters=None, data_pool=data_pool)
+
+        self.expert_data_pool = expert_data_pool
+
+        self.discriminator = discriminator
+
+        concat_data = np.concatenate((self.expert_data_pool.observation_buffer, self.expert_data_pool.action_buffer),
+                                     axis=1)
+
+        self.tf_expert_s_a = self.expert_data_pool.convert_to_tensor(concat_data)
+
+        self.discriminator_optimizer = tf.optimizers.Adam(learning_rate=3e-3)
+
+    def _optimize(self):
+        state_action = np.concatenate((self.data_pool.observation_buffer, self.data_pool.action_buffer), axis=1)
+        for i in range(5):
+            self.train_discriminator(state_action)
+
+    @tf.function
+    def train_discriminator(self, state_action):
+        with tf.GradientTape() as tape:
+            expert_reward = self.discriminator(self.tf_expert_s_a)
+            reward = self.discriminator(state_action)
+
+            loss_expert = tf.reduce_mean(tf.math.log(tf.clip_by_value(expert_reward, 0.01, 1)))
+            loss_agent = tf.reduce_mean(tf.math.log(tf.clip_by_value(1 - reward, 0.01, 1)))
+            loss = loss_agent + loss_expert
+            loss = -loss
+
+        grad = tape.gradient(loss, self.discriminator.get_variable())
+        self.discriminator_optimizer.apply_gradients(zip(grad, self.discriminator.get_variable()))
+
+        return loss

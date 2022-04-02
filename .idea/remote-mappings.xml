@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteMappingsManager">
+    <list>
+      <list>
+        <remote-mappings server-id="python@sftp://yt@103.53.211.109:22/home/yt/miniconda3/envs/GAN/bin/python3.8" />
+      </list>
+    </list>
+  </component>
+</project>
