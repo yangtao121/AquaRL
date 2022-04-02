@@ -22,6 +22,10 @@ class Discriminator(BasePolicy):
         r = tf.math.log(tf.clip_by_value(r, 1e-10, 1))
         return r
 
+    def get_rewards_buffer(self, state, action):
+        state_action = tf.concat((state, action), axis=1)
+        return self(state_action)
+
     # TODO: modify
     # def __call__(self, state, action):
     #     return self.Model(state, action)

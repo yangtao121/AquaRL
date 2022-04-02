@@ -6,13 +6,14 @@ import tensorflow_probability as tfp
 # TODO: clear data shape
 class PPO(BaseAlgo):
     def __init__(self, hyper_parameters, data_pool, actor,
-                 critic):
+                 critic, discriminator=None):
         super().__init__(hyper_parameters, data_pool)
         self.actor = actor
         self.critic = critic
 
         self.critic_optimizer = tf.optimizers.Adam(learning_rate=self.hyper_parameters.critic_learning_rate)
         self.actor_optimizer = tf.optimizers.Adam(learning_rate=self.hyper_parameters.policy_learning_rate)
+        self.discriminator = discriminator
 
     def _optimize(self):
         tf_observation_buffer = self.data_pool.convert_to_tensor(self.data_pool.observation_buffer)
@@ -24,8 +25,10 @@ class PPO(BaseAlgo):
         # tf_next_values_buffer = self.critic.get_value(tf_next_observation_buffer)
 
         # tf_mask_buffer = self.data_pool.convert_to_tensor(self.data_pool.mask_buffer)
-
-        tf.reward_buffer = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer)
+        if self.discriminator is None:
+            tf.reward_buffer = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer)
+        else:
+            tf.reward_buffer = self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer)
 
         gae, target = self.cal_gae_target(self.data_pool.reward_buffer, tf_values_buffer.numpy(),
                                           self.data_pool.mask_buffer)
@@ -37,7 +40,7 @@ class PPO(BaseAlgo):
         for _ in tf.range(0, self.hyper_parameters.update_steps):
             start_pointer = 0
             end_pointer = self.hyper_parameters.batch_size - 1
-            while end_pointer < max_steps-1:
+            while end_pointer < max_steps - 1:
                 state = tf_observation_buffer[start_pointer: end_pointer]
                 action = tf_action_buffer[start_pointer: end_pointer]
                 gae = tf_gae[start_pointer: end_pointer]
@@ -47,7 +50,7 @@ class PPO(BaseAlgo):
                 self.train_actor(state, action, gae, old_prob)
                 self.train_critic(state, target)
                 start_pointer = end_pointer
-                end_pointer = end_pointer+self.hyper_parameters.batch_size
+                end_pointer = end_pointer + self.hyper_parameters.batch_size
 
     @tf.function
     def train_critic(self, observation, target):

@@ -1,11 +1,11 @@
 import gym
-from AquaRL.worker.Worker import GAILWorker, EvaluateWorker, SampleWorker
+from AquaRL.worker.Worker import GAILWorker, EvaluateWorker, SampleWorker, Worker
 from AquaRL.policy.GaussianPolicy import GaussianPolicy
 from AquaRL.policy.CriticPolicy import CriticPolicy
 from AquaRL.policy.Discriminator import Discriminator
 from AquaRL.neural import gaussian_mlp, mlp
 from AquaRL.pool.LocalPool import LocalPool
-from AquaRL.args import PPOHyperParameters, EnvArgs
+from AquaRL.args import PPOHyperParameters, EnvArgs, GAILParameters
 from AquaRL.algo.GAIL import GAIL
 from AquaRL.algo.PPO import PPO
 
@@ -32,6 +32,8 @@ env_args_expert = EnvArgs(
 hyper_parameter = PPOHyperParameters(
     batch_size=200
 )
+
+gail_parameters = GAILParameters()
 
 actor = mlp(
     state_dims=env_args.observation_dims,
@@ -71,16 +73,17 @@ sample_worker.INFO_sample()
 
 data_pool = LocalPool(observation_dims, action_dims, env_args.total_steps, env_args.trajs)
 
-worker = GAILWorker(env=env, env_args=env_args, data_pool=data_pool, policy=policy, discriminator=discriminator)
+worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy)
 
 ppo = PPO(
     hyper_parameters=hyper_parameter,
     data_pool=data_pool,
     actor=policy,
-    critic=critic
+    critic=critic,
+    discriminator=discriminator
 )
 
-gail = GAIL(expert_data_pool, data_pool, discriminator)
+gail = GAIL(gail_parameters, expert_data_pool, data_pool, discriminator)
 
 for i in range(env_args.epochs):
     worker.sample()
