@@ -22,8 +22,11 @@ class BasePolicy(abc.ABC):
         else:
             self.Model.save_weights(filepath=file + '/' + self.file_name + '.h5', overwrite=True)
 
+        print('save complete.')
+
     def load_weights(self, file=None):
         self.Model.load_weights(filepath=file + '/' + self.file_name + '.h5')
+        # print('load complete.')
 
     def load_model(self, file):
         self.Model = tf.keras.models.load_model(filepath=file, compile=False)

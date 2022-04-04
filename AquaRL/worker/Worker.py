@@ -21,6 +21,10 @@ class Worker:
                 state = state.reshape(1, -1)
                 # print(state)
                 action, prob = self.policy.get_action(state)
+                # print(prob)
+                # action = action.numpy()
+                # prob = prob.numpy()[0]
+                # print(prob)
 
                 action_ = action * 2
 
@@ -36,6 +40,8 @@ class Worker:
                 state = state_
 
             self.data_pool.summery_episode(sum_reward)
+        # print("sub thread")
+        # print(self.data_pool.prob_buffer)
 
 
 class EvaluateWorker:

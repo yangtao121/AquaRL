@@ -57,8 +57,8 @@ for i in range(env_args.epochs):
     ppo.optimize()
     if i > 50:
         mark = evaluate_worker.sample()
-        if mark > max_mark:
-            max_mark = mark
-            policy.save_model('actor.h5')
+        # if mark > max_mark:
+        #     max_mark = mark
+        #     policy.save_model('actor.h5')
 
 # policy.save_model('actor.h5')

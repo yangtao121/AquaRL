@@ -2,6 +2,7 @@ import abc
 import logging
 import numpy as np
 import tensorflow as tf
+from copy import deepcopy
 
 
 class BasePool(abc.ABC):
@@ -57,6 +58,7 @@ class BasePool(abc.ABC):
 
         if prob is not None:
             self.prob_buffer[self.pointer] = prob
+        # print(self.prob_buffer[self.pointer], prob.numpy())
 
         self.pointer += 1
 
@@ -68,6 +70,17 @@ class BasePool(abc.ABC):
     def summery_episode(self, episode_reward):
         self.episode_reward_buffer[self.episode_pointer] = episode_reward
         self.episode_pointer += 1
+
+    @staticmethod
+    def save_data(data, file_name):
+        np.savetxt(file_name, data, delimiter=",")
+
+    def save_all_data(self, file_name):
+        self.save_data(self.reward_buffer, file_name + 'reward.csv')
+        self.save_data(self.observation_buffer, file_name + 'observation.csv')
+        self.save_data(self.prob_buffer, file_name + 'prob.csv')
+        self.save_data(self.action_buffer, file_name + 'action.csv')
+        self.save_data(self.mask_buffer, file_name + 'mask.csv')
 
     @property
     def get_average_reward(self):
@@ -83,7 +96,8 @@ class BasePool(abc.ABC):
 
     @staticmethod
     def convert_to_tensor(data):
-        return tf.cast(data, dtype=tf.float32)
+        # out = deepcopy(data)
+        return tf.convert_to_tensor(data, dtype=tf.float32)
 
     def pool_info(self):
         logging.basicConfig(level=logging.INFO)

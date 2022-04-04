@@ -4,7 +4,7 @@ from AquaRL.pool.BasePool import BasePool
 
 
 class MainThreadSharaMemery(BasePool):
-    def __init__(self, observation_dims, action_dims, max_steps, epochs, name):
+    def __init__(self, observation_dims, action_dims, max_steps, epochs, total_traj ,name):
         super().__init__(observation_dims, action_dims, max_steps, epochs)
         self.pool_name = name
         if isinstance(observation_dims, tuple):
@@ -35,8 +35,8 @@ class MainThreadSharaMemery(BasePool):
         # advantage_share = np.zeros((max_steps, 1), dtype=np.float32)
         # target_share = np.zeros((max_steps, 1), dtype=np.float32)
 
-        mask_share = np.zeros((max_steps, 1), dtype=np.int32)
-        episode_reward_share = np.zeros((epochs,1),dtype=np.float32)
+        mask_share = np.zeros((max_steps, 1), dtype=np.float32)
+        episode_reward_share = np.zeros((total_traj, 1), dtype=np.float32)
 
         # create share memery
         self.shm_observation = shared_memory.SharedMemory(create=True, size=observation_share.nbytes,
@@ -47,7 +47,8 @@ class MainThreadSharaMemery(BasePool):
         self.shm_prob = shared_memory.SharedMemory(create=True, size=prob_share.nbytes, name=name + "_prob")
         self.shm_reward = shared_memory.SharedMemory(create=True, size=reward_share.nbytes, name=name + "_reward")
         self.shm_mask = shared_memory.SharedMemory(create=True, size=mask_share.nbytes, name=name + "_mask")
-        self.shm_episode_reward = shared_memory.SharedMemory(create=True, size=episode_reward_share.nbytes,name=name + "_episode_reward")
+        self.shm_episode_reward = shared_memory.SharedMemory(create=True, size=episode_reward_share.nbytes,
+                                                             name=name + "_episode_reward")
 
         # create a NumPy array backed by shared memory
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
@@ -55,9 +56,10 @@ class MainThreadSharaMemery(BasePool):
                                                   buffer=self.shm_next_observation.buf)
         self.action_buffer = np.ndarray(action_share.shape, dtype=np.float32, buffer=self.shm_action.buf)
         self.reward_buffer = np.ndarray(reward_share.shape, dtype=np.float32, buffer=self.shm_reward.buf)
-        self.prob_buffer = np.ndarray(prob_share.shape, dtype=np.float32, buffer=self.shm_action.buf)
-        self.mask_buffer = np.ndarray(mask_share.shape, dtype=np.int32, buffer=self.shm_mask.buf)
-        self.episode_reward_buffer = np.ndarray(episode_reward_share.shape,dtype=np.float32,buffer=self.shm_episode_reward.buf)
+        self.prob_buffer = np.ndarray(prob_share.shape, dtype=np.float32, buffer=self.shm_prob.buf)
+        self.mask_buffer = np.ndarray(mask_share.shape, dtype=np.float32, buffer=self.shm_mask.buf)
+        self.episode_reward_buffer = np.ndarray(episode_reward_share.shape, dtype=np.float32,
+                                                buffer=self.shm_episode_reward.buf)
 
     def close_shm(self):
         del self.observation_buffer
@@ -86,8 +88,9 @@ class MainThreadSharaMemery(BasePool):
 
 
 class SubThreadShareMemery(BasePool):
-    def __init__(self, observation_dims, action_dims, max_steps, start_pointer, steps, epochs, epoch_start_pointer, name):
-        super().__init__(observation_dims, action_dims, max_steps,epochs)
+    def __init__(self, observation_dims, action_dims, max_steps, start_pointer, steps, epochs, epoch_start_pointer,total_traj,
+                 name):
+        super().__init__(observation_dims, action_dims, max_steps, epochs)
 
         self.pool_name = name
         if isinstance(observation_dims, tuple):
@@ -114,8 +117,9 @@ class SubThreadShareMemery(BasePool):
 
         reward_share = np.zeros((max_steps, 1))
         prob_share = np.zeros(action_share.shape, dtype=np.float32)
-        mask_share = np.zeros((max_steps, 1), dtype=np.int32)
-        episode_reward_share = np.zeros((epochs, 1), dtype=np.float32)
+        mask_share = np.zeros((max_steps, 1), dtype=np.float32)
+        episode_reward_share = np.zeros((total_traj, 1), dtype=np.float32)
+        # print(name)
 
         self.shm_observation = shared_memory.SharedMemory(name=name + '_observation')
         self.shm_next_observation = shared_memory.SharedMemory(name=name + "_next_observation")
@@ -125,7 +129,6 @@ class SubThreadShareMemery(BasePool):
         self.shm_mask = shared_memory.SharedMemory(name=name + "_mask")
         self.shm_episode_reward = shared_memory.SharedMemory(name=name + "_episode_reward")
 
-
         # create a NumPy array backed by shared memory
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
         self.next_observation_buffer = np.ndarray(next_observation_share.shape, dtype=np.float32,
@@ -133,8 +136,9 @@ class SubThreadShareMemery(BasePool):
         self.action_buffer = np.ndarray(action_share.shape, dtype=np.float32, buffer=self.shm_action.buf)
         self.reward_buffer = np.ndarray(reward_share.shape, dtype=np.float32, buffer=self.shm_reward.buf)
         self.prob_buffer = np.ndarray(prob_share.shape, dtype=np.float32, buffer=self.shm_prob.buf)
-        self.mask_buffer = np.ndarray(mask_share.shape, dtype=np.int32, buffer=self.shm_mask.buf)
-        self.episode_reward_buffer = np.ndarray(episode_reward_share.shape,dtype=np.float32,buffer=self.shm_episode_reward.buf)
+        self.mask_buffer = np.ndarray(mask_share.shape, dtype=np.float32, buffer=self.shm_mask.buf)
+        self.episode_reward_buffer = np.ndarray(episode_reward_share.shape, dtype=np.float32,
+                                                buffer=self.shm_episode_reward.buf)
 
         self.star_pointer = start_pointer
         self.pointer = start_pointer
@@ -143,24 +147,29 @@ class SubThreadShareMemery(BasePool):
         self.epoch_start_pointer = epoch_start_pointer
         self.episode_pointer = self.epoch_start_pointer
 
-    def _store(self, observation, action, reward, mask, next_observation, prob):
-
-        self.observation_buffer[self.pointer] = observation
-        self.next_observation_buffer[self.pointer] = next_observation
-        self.action_buffer[self.pointer] = action
-        self.reward_buffer[self.pointer] = reward
-        self.mask_buffer[self.pointer] = mask
-        self.prob_buffer[self.pointer] = prob
-
-        self.prob_buffer += 1
-        self.cnt += 1
-        if self.cnt > self.steps:
-            raise RuntimeError("Beyond maximum boundary")
+    # def _store(self, observation, action, reward, mask, next_observation, prob):
+    #
+    #     self.observation_buffer[self.pointer] = observation
+    #     self.next_observation_buffer[self.pointer] = next_observation
+    #     self.action_buffer[self.pointer] = action
+    #     self.reward_buffer[self.pointer] = reward
+    #     self.mask_buffer[self.pointer] = mask
+    #     self.prob_buffer[self.pointer] = prob
+    #
+    #     self.pointer += 1
+    #     self.cnt += 1
+    #     if self.cnt > self.steps:
+    #         raise RuntimeError("Beyond maximum boundary: step buffer")
 
     def rest_pointer(self):
         self.pointer = self.star_pointer
         self.cnt = 0
         self.episode_pointer = self.epoch_start_pointer
+
+    # def summery_episode(self, episode_reward):
+    #     self.episode_reward_buffer[self.episode_pointer] = episode_reward
+    #     self.episode_pointer += 1
+    #     if self.episode_pointer - self.epoch_start_pointer > self.
 
     def close_shm(self):
         del self.observation_buffer

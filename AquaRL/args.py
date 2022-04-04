@@ -4,11 +4,15 @@ class EnvArgs:
         if multi_worker_num is not None:
             self.total_steps = trajs * max_steps * multi_worker_num
             self.multi_worker_num = multi_worker_num
+            self.thread_step = trajs*max_steps
+            self.total_trajs = trajs * multi_worker_num
         else:
             self.total_steps = trajs * max_steps
             self.multi_worker_num = 1
+            self.thread_step = self.total_steps
 
         self.trajs = trajs
+
         self.steps = max_steps
 
         self.observation_dims = observation_dims

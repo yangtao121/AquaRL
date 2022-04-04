@@ -6,11 +6,16 @@ import datetime
 
 # TODO: clear data shape
 class BaseAlgo(abc.ABC):
-    def __init__(self, hyper_parameters, data_pool):
+    def __init__(self, hyper_parameters, data_pool, work_space=None):
         self.hyper_parameters = hyper_parameters
         self.data_pool = data_pool  # memery share
 
-        log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        if work_space is None:
+            self.work_space = 'logs'
+        else:
+            self.work_space = work_space
+
+        log_dir = self.work_space + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.min_summary_writer = tf.summary.create_file_writer(log_dir + "/min")
         self.max_summary_writer = tf.summary.create_file_writer(log_dir + "/max")
         self.main_summary_writer = tf.summary.create_file_writer(log_dir + "/average")
@@ -46,6 +51,7 @@ class BaseAlgo(abc.ABC):
         return gae, n_steps_target
 
     def optimize(self):
+        # print(self.data_pool.prob_buffer)
 
         with self.main_summary_writer.as_default():
             tf.summary.scalar("Reward", self.data_pool.get_average_reward, step=self.epoch)

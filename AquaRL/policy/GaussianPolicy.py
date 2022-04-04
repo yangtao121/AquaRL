@@ -20,6 +20,9 @@ class GaussianPolicy(BasePolicy):
     def set_std(self, std):
         self.log_std = tf.Variable(std, dtype=tf.float32)
 
+    def get_std(self):
+        return self.log_std.numpy()
+
     @tf.function
     def get_mu(self, obs):
         return self.Model(obs)
@@ -30,6 +33,7 @@ class GaussianPolicy(BasePolicy):
         prob = self.noise_dist.prob(noise)
 
         prob = tf.clip_by_value(prob, 1e-6, 1)
+        prob = tf.squeeze(prob)
 
         return noise, prob
 
@@ -39,6 +43,7 @@ class GaussianPolicy(BasePolicy):
         :param obs:
         :return:
         """
+        obs = tf.cast(obs, tf.float32)
         a_adv = self.get_mu(obs)
         a_adv = tf.squeeze(a_adv, axis=0)
         a_std = tf.exp(self.log_std)
