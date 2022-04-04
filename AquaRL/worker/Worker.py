@@ -26,9 +26,7 @@ class Worker:
                 # prob = prob.numpy()[0]
                 # print(prob)
 
-                action_ = action * 2
-
-                state_, reward, done, _ = self.env.step(action_)
+                state_, reward, done, _ = self.env.step(action)
 
                 sum_reward += reward
 
@@ -62,8 +60,8 @@ class EvaluateWorker:
                 state = state.reshape(1, -1)
                 # print(state)
                 action, prob = self.policy.action(state)
-                action_ = action * 2
-                state_, reward, done, _ = self.env.step(action_)
+
+                state_, reward, done, _ = self.env.step(action)
                 sum_reward += reward
                 state = state_
 
@@ -101,9 +99,7 @@ class SampleWorker:
                 # print(state)
                 action = self.policy.action(state)
 
-                action_ = action * 2
-
-                state_, reward, done, _ = self.env.step(action_)
+                state_, reward, done, _ = self.env.step(action)
 
                 sum_reward += reward
 
@@ -143,9 +139,7 @@ class GAILWorker:
                 # print(state)
                 action, prob = self.policy.get_action(state)
 
-                action_ = action * 2
-
-                state_, reward, done, _ = self.env.step(action_)
+                state_, reward, done, _ = self.env.step(action)
 
                 d_reward = self.discriminator.get_r(state, action)
                 # print(d_reward)
