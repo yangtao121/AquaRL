@@ -71,3 +71,9 @@ class BaseMPI:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
+    def close_shm(self):
+        if self.rank == 0:
+            self.main_data_pool.close_shm()
+        else:
+            self.sub_data_pool.close_shm()
+

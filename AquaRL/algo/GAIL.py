@@ -1,14 +1,13 @@
 from AquaRL.algo.BaseAlgo import BaseAlgo
 import tensorflow as tf
-from AquaRL.pool.LocalPool import LocalPool
 import numpy as np
 from AquaRL.args import GAILParameters
 
 
 # TODO: need to implement
 class GAIL(BaseAlgo):
-    def __init__(self, parameters: GAILParameters, expert_data_pool: LocalPool, data_pool: LocalPool, discriminator):
-        super().__init__(hyper_parameters=parameters, data_pool=data_pool)
+    def __init__(self, parameters: GAILParameters, expert_data_pool, data_pool, discriminator, work_space=None):
+        super().__init__(hyper_parameters=parameters, data_pool=data_pool, work_space=work_space)
 
         self.expert_data_pool = expert_data_pool
 

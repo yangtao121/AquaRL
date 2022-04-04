@@ -2,12 +2,11 @@ from AquaRL.mpi.BaseMPI import BaseMPI
 from AquaRL.algo.PPO import PPO
 from mpi4py import MPI
 from AquaRL.worker.Worker import Worker
-from AquaRL.policy.GaussianPolicy import GaussianPolicy
 import numpy as np
 
 
 class PPOMPI(BaseMPI):
-    def __init__(self, hyper_parameters, actor: GaussianPolicy, critic, env, comm: MPI.COMM_WORLD, work_space: str,
+    def __init__(self, hyper_parameters, actor, critic, env, comm: MPI.COMM_WORLD, work_space: str,
                  env_args):
         super().__init__(comm, work_space, env_args)
         self.actor = actor
@@ -27,11 +26,6 @@ class PPOMPI(BaseMPI):
         # self.train()
 
     def train(self):
-        sendbuf = np.zeros(100, dtype='i')
-        recvbuf = None
-        if self.rank == 0:
-            recvbuf = np.empty([self.size, 100], dtype='i')
-
         for i in range(self.env_args.epochs):
             if self.rank > 0:
                 std = np.empty(self.env_args.action_dims,dtype=np.float32)
@@ -71,10 +65,6 @@ class PPOMPI(BaseMPI):
             # else:
             #     self.sub_data_pool.save_all_data(self.debug_path + '/'+'sub{}'.format(self.rank)+str(i))
 
-    def close_shm(self):
-        if self.rank == 0:
-            self.main_data_pool.close_shm()
-        else:
-            self.sub_data_pool.close_shm()
+
 
 

@@ -43,11 +43,11 @@ class PPO(BaseAlgo):
             start_pointer = 0
             end_pointer = self.hyper_parameters.batch_size - 1
             while end_pointer <= max_steps - 1:
-                state = deepcopy(tf_observation_buffer[start_pointer: end_pointer])
-                action = deepcopy(tf_action_buffer[start_pointer: end_pointer])
-                gae = deepcopy(tf_gae[start_pointer: end_pointer])
-                target = deepcopy(tf_target[start_pointer: end_pointer])
-                old_prob = deepcopy(tf_old_probs[start_pointer: end_pointer])
+                state = tf_observation_buffer[start_pointer: end_pointer]
+                action = tf_action_buffer[start_pointer: end_pointer]
+                gae = tf_gae[start_pointer: end_pointer]
+                target = tf_target[start_pointer: end_pointer]
+                old_prob = tf_old_probs[start_pointer: end_pointer]
 
                 self.train_actor(state, action, gae, old_prob)
                 self.train_critic(state, target)
