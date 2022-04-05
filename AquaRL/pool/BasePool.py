@@ -50,13 +50,13 @@ class BasePool(abc.ABC):
         """
         self.observation_buffer[self.pointer] = observation
 
-        if next_observation is not None:
+        if next_observation is not None and next_observation is not None:
             self.next_observation_buffer[self.pointer] = next_observation
         self.action_buffer[self.pointer] = action
         self.reward_buffer[self.pointer] = reward
         self.mask_buffer[self.pointer] = mask
 
-        if prob is not None:
+        if prob is not None and prob is not None:
             self.prob_buffer[self.pointer] = prob
         # print(self.prob_buffer[self.pointer], prob.numpy())
 
@@ -78,7 +78,8 @@ class BasePool(abc.ABC):
     def save_all_data(self, file_name):
         self.save_data(self.reward_buffer, file_name + 'reward.csv')
         self.save_data(self.observation_buffer, file_name + 'observation.csv')
-        self.save_data(self.prob_buffer, file_name + 'prob.csv')
+        if self.prob_buffer is not None:
+            self.save_data(self.prob_buffer, file_name + 'prob.csv')
         self.save_data(self.action_buffer, file_name + 'action.csv')
         self.save_data(self.mask_buffer, file_name + 'mask.csv')
 
