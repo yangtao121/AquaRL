@@ -33,7 +33,6 @@ class PPOMPI(BaseMPI):
             else:
                 self.ppo.actor.save_weights(self.cache_path)
                 std = self.actor.get_std()
-                print("main std:{},{}".format(i, self.actor.get_std()))
                 # recv_wait = np.zeros((self.size - 1, 1), dtype=np.float32)
 
             self.comm.Bcast(std, root=0)

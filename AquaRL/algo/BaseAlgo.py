@@ -15,7 +15,7 @@ class BaseAlgo(abc.ABC):
         else:
             self.work_space = work_space
 
-        log_dir = self.work_space + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_dir = self.work_space + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M")
         self.min_summary_writer = tf.summary.create_file_writer(log_dir + "/min")
         self.max_summary_writer = tf.summary.create_file_writer(log_dir + "/max")
         self.average_summary_writer = tf.summary.create_file_writer(log_dir + "/average")

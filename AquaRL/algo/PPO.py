@@ -29,7 +29,7 @@ class PPO(BaseAlgo):
         if self.discriminator is None:
             tf.reward_buffer = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer)
         else:
-            tf.reward_buffer = self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer)
+            tf.reward_buffer = tf.math.log(self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer))
 
         gae, target = self.cal_gae_target(self.data_pool.reward_buffer, tf_values_buffer.numpy(),
                                           self.data_pool.mask_buffer)
@@ -79,12 +79,14 @@ class PPO(BaseAlgo):
         print("Actor loss:{}".format(actor_loss))
         print("Surrogate loss:{}".format(surrogate_loss))
         print("Entropy loss:{}".format(entropy_loss))
+        print("main std:{}".format(self.actor.get_std()))
 
         with self.after_summary_writer.as_default():
             tf.summary.scalar('PPO/critic_loss', critic_loss, self.epoch)
             tf.summary.scalar('PPO/actor_loss', actor_loss, self.epoch)
             tf.summary.scalar('PPO/surrogate loss', surrogate_loss, self.epoch)
             tf.summary.scalar('PPO/entropy_loss', entropy_loss, self.epoch)
+            tf.summary.text('PPO info', 'std:{}'.format(self.actor.get_std()), self.epoch)
 
     @tf.function
     def train_critic(self, observation, target):
@@ -179,7 +181,7 @@ class PPO(BaseAlgo):
 
     def write_parameter(self):
         with self.main_summary_writer.as_default():
-            clip_ratio = 'clip ratio:{}\n'.format(self.hyper_parameters.clip_ratio)
+            clip_ratio = 'clip ratio:{}'.format(self.hyper_parameters.clip_ratio)
             actor_learning_rate = 'actor learning rate:{}'.format(self.hyper_parameters.policy_learning_rate)
             critic_learning_rate = 'critic learning rate:{}'.format(self.hyper_parameters.critic_learning_rate)
             batch_size = 'batch size:{}'.format(self.hyper_parameters.batch_size)

@@ -22,23 +22,28 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
+# if rank == 0:
+#     physical_devices = tf.config.experimental.list_physical_devices('GPU')
+#     if len(physical_devices) > 0:
+#         for k in range(len(physical_devices)):
+#             tf.config.experimental.set_memory_growth(physical_devices[k], True)
+#             print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
+#     else:
+#         print("Not enough GPU hardware devices available")
+# else:
+#     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#     # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
 if rank == 0:
-    physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
-        for k in range(len(physical_devices)):
-            tf.config.experimental.set_memory_growth(physical_devices[k], True)
-            print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
-    else:
-        print("Not enough GPU hardware devices available")
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 env = gym.make("Pendulum-v0")
 observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 env_args = EnvArgs(
-    trajs=4,
+    trajs=1,
     max_steps=200,
     epochs=200,
     observation_dims=observation_dims,
@@ -56,7 +61,8 @@ env_args_expert = EnvArgs(
 
 ppo_hyper_parameter = PPOHyperParameters(
     batch_size=200,
-    update_steps=10
+    update_steps=10,
+    entropy_coefficient=0.01
 )
 gail_parameters = GAILParameters()
 
@@ -107,7 +113,7 @@ gail = GAILPPO(
     env=env,
     expert_data_pool=expert_data_pool,
     comm=comm,
-    work_space='test1',
+    work_space='GAIL',
     env_args=env_args
 )
 

@@ -8,6 +8,9 @@ from AquaRL.pool.LocalPool import LocalPool
 from AquaRL.args import PPOHyperParameters, EnvArgs, GAILParameters
 from AquaRL.algo.GAIL import GAIL
 from AquaRL.algo.PPO import PPO
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 env = gym.make("Pendulum-v0")
 observation_dims = env.observation_space.shape[0]
