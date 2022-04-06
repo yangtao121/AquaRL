@@ -7,7 +7,7 @@ import numpy as np
 
 class PPOMPI(BaseMPI):
     def __init__(self, hyper_parameters, actor, critic, env, comm: MPI.COMM_WORLD, work_space: str,
-                 env_args):
+                 env_args, action_fun=None):
         super().__init__(comm, work_space, env_args)
         self.actor = actor
 
@@ -21,7 +21,7 @@ class PPOMPI(BaseMPI):
             )
 
         else:
-            self.worker = Worker(env, env_args, self.sub_data_pool, actor)
+            self.worker = Worker(env, env_args, self.sub_data_pool, actor, action_fun)
 
         # self.train()
 

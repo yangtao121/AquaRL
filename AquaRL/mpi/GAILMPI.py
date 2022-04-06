@@ -11,9 +11,10 @@ import numpy as np
 class GAILPPO(BaseMPI):
     def __init__(self, gail_parameters: GAILParameters, ppo_parameters: PPOHyperParameters,
                  discriminator, actor,
-                 critic, env, expert_data_pool, comm: MPI.COMM_WORLD, work_space: str, env_args):
+                 critic, env, expert_data_pool, comm: MPI.COMM_WORLD, work_space: str, env_args, action_fun=None):
         super().__init__(comm, work_space, env_args)
         self.actor = actor
+        self.action_fun = action_fun
 
         if self.rank == 0:
             self.ppo = PPO(
@@ -34,7 +35,7 @@ class GAILPPO(BaseMPI):
             )
 
         else:
-            self.worker = Worker(env, env_args, self.sub_data_pool, actor)
+            self.worker = Worker(env, env_args, self.sub_data_pool, actor, action_fun)
 
         self.comm.Barrier()
 
@@ -61,4 +62,3 @@ class GAILPPO(BaseMPI):
                 self.ppo.optimize()
 
             self.comm.Barrier()
-

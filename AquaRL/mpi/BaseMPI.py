@@ -45,7 +45,7 @@ class BaseMPI:
             self.main_data_pool.pool_info()
 
         else:
-            time.sleep(8)
+            time.sleep(15)
             self.sub_data_pool = SubThreadShareMemery(env_args.observation_dims, env_args.action_dims,
                                                       env_args.total_steps, start_step_pointer, env_args.thread_step,
                                                       env_args.epochs, start_epoch_pointer, env_args.total_trajs,

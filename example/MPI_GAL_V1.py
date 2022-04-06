@@ -95,11 +95,16 @@ discriminator = Discriminator(D)
 
 expert_data_pool = None
 
+
+def action_fun(x):
+    return 2 * x
+
+
 if rank == 0:
     expert_policy = GaussianPolicy(action_dims)
     expert_policy.load_model('policy.h5')
     expert_data_pool = LocalPool(observation_dims, action_dims, env_args_expert.total_steps, env_args_expert.trajs)
-    sample_worker = SampleWorker(env, env_args_expert, expert_data_pool, expert_policy)
+    sample_worker = SampleWorker(env, env_args_expert, expert_data_pool, expert_policy, action_fun)
     sample_worker.sample()
     sample_worker.INFO_sample()
 

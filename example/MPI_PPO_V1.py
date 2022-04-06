@@ -23,17 +23,22 @@ rank = comm.Get_rank()
 # port_mapping = [65117, 65118, 65119, 65115]
 # pydevd_pycharm.settrace('localhost', port=port_mapping[rank], stdoutToServer=True, stderrToServer=True)
 
+# if rank == 0:
+#     physical_devices = tf.config.experimental.list_physical_devices('GPU')
+#     if len(physical_devices) > 0:
+#         for k in range(len(physical_devices)):
+#             tf.config.experimental.set_memory_growth(physical_devices[k], True)
+#             print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
+#     else:
+#         print("Not enough GPU hardware devices available")
+# else:
+#     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#     # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
 if rank == 0:
-    physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
-        for k in range(len(physical_devices)):
-            tf.config.experimental.set_memory_growth(physical_devices[k], True)
-            print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
-    else:
-        print("Not enough GPU hardware devices available")
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 else:
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    # os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 # print("ok")
 
@@ -73,6 +78,11 @@ value_net = mlp(
 policy = GaussianPolicy(out_shape=1, model=actor, file_name='policy')
 critic = CriticPolicy(model=value_net, file_name='critic')
 
-ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'test3', env_args)
+
+def action_fun(x):
+    return 2 * x
+
+
+ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'test4', env_args, action_fun=action_fun)
 ppo.train()
 ppo.close_shm()

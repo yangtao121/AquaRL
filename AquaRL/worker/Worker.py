@@ -3,11 +3,12 @@ import numpy as np
 
 
 class Worker:
-    def __init__(self, env, env_args: EnvArgs, data_pool, policy):
+    def __init__(self, env, env_args: EnvArgs, data_pool, policy, action_fun=None):
         self.data_pool = data_pool
         self.policy = policy
         self.env_args = env_args
         self.env = env
+        self.action_fun = action_fun
 
     def sample(self):
 
@@ -26,7 +27,11 @@ class Worker:
                 # prob = prob.numpy()[0]
                 # print(prob)
 
-                action_ = action * 2
+                if self.action_fun is not None:
+                    action_ = self.action_fun(action)
+                else:
+                    action_ = action
+                # action_ = action * 2
 
                 state_, reward, done, _ = self.env.step(action_)
 
@@ -82,11 +87,12 @@ class EvaluateWorker:
 
 
 class SampleWorker:
-    def __init__(self, env, env_args: EnvArgs, data_pool, policy):
+    def __init__(self, env, env_args: EnvArgs, data_pool, policy, action_fun=None):
         self.data_pool = data_pool
         self.policy = policy
         self.env_args = env_args
         self.env = env
+        self.action_fun = action_fun
 
     def sample(self):
 
@@ -101,7 +107,10 @@ class SampleWorker:
                 # print(state)
                 action = self.policy.action(state)
 
-                action_ = action * 2
+                if self.action_fun is not None:
+                    action_ = self.action_fun(action)
+                else:
+                    action_ = action
 
                 state_, reward, done, _ = self.env.step(action_)
 
