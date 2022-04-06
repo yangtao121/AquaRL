@@ -1,12 +1,12 @@
 from AquaRL.algo.BaseAlgo import BaseAlgo
 import tensorflow as tf
+from AquaRL.args import PPOHyperParameters
 import tensorflow_probability as tfp
-from copy import deepcopy
 
 
 # TODO: clear data shape
 class PPO(BaseAlgo):
-    def __init__(self, hyper_parameters, data_pool, actor,
+    def __init__(self, hyper_parameters: PPOHyperParameters, data_pool, actor,
                  critic, works_pace=None, discriminator=None):
         super().__init__(hyper_parameters, data_pool, works_pace)
         self.actor = actor
@@ -39,6 +39,21 @@ class PPO(BaseAlgo):
         max_steps = self.data_pool.max_steps
         # print(max_steps)
 
+        critic_loss, actor_loss, surrogate_loss, entropy_loss = self.cal_loss(tf_observation_buffer, tf_action_buffer,
+                                                                              tf_gae, tf_target, tf_old_probs)
+
+        print("Training before:")
+        print("Critic loss:{}".format(critic_loss))
+        print("Actor loss:{}".format(actor_loss))
+        print("Surrogate loss:{}".format(surrogate_loss))
+        print("Entropy loss:{}".format(entropy_loss))
+
+        with self.before_summary_writer.as_default():
+            tf.summary.scalar('PPO/critic_loss', critic_loss, self.epoch)
+            tf.summary.scalar('PPO/actor_loss', actor_loss, self.epoch)
+            tf.summary.scalar('PPO/surrogate loss', surrogate_loss, self.epoch)
+            tf.summary.scalar('PPO/entropy_loss', entropy_loss, self.epoch)
+
         for _ in tf.range(0, self.hyper_parameters.update_steps):
             start_pointer = 0
             end_pointer = self.hyper_parameters.batch_size - 1
@@ -55,6 +70,21 @@ class PPO(BaseAlgo):
                 # print(ok)
                 start_pointer = end_pointer
                 end_pointer = end_pointer + self.hyper_parameters.batch_size
+
+        critic_loss, actor_loss, surrogate_loss, entropy_loss = self.cal_loss(tf_observation_buffer, tf_action_buffer,
+                                                                              tf_gae, tf_target, tf_old_probs)
+
+        print("Training after:")
+        print("Critic loss:{}".format(critic_loss))
+        print("Actor loss:{}".format(actor_loss))
+        print("Surrogate loss:{}".format(surrogate_loss))
+        print("Entropy loss:{}".format(entropy_loss))
+
+        with self.after_summary_writer.as_default():
+            tf.summary.scalar('PPO/critic_loss', critic_loss, self.epoch)
+            tf.summary.scalar('PPO/actor_loss', actor_loss, self.epoch)
+            tf.summary.scalar('PPO/surrogate loss', surrogate_loss, self.epoch)
+            tf.summary.scalar('PPO/entropy_loss', entropy_loss, self.epoch)
 
     @tf.function
     def train_critic(self, observation, target):
@@ -99,16 +129,50 @@ class PPO(BaseAlgo):
 
             # print(action.shape)
             # print(old_prob.shape)
-            ratio = tf.clip_by_value(pi.prob(action), 1e-6, 1) / old_prob
-            actor_loss = -tf.reduce_mean(
+            new_prob = tf.clip_by_value(pi.prob(action), 1e-6, 1)
+            ratio = new_prob / old_prob
+            surrogate_loss = tf.reduce_mean(
                 tf.minimum(
                     ratio * advantage,
                     tf.clip_by_value(ratio, 1 - self.hyper_parameters.clip_ratio,
                                      1 + self.hyper_parameters.clip_ratio) * advantage
                 )
             )
-        actor_grad = tape.gradient(actor_loss, self.actor.get_variable())
+            entropy_loss = -tf.reduce_mean(new_prob * tf.math.log(new_prob))
+
+            loss = -(entropy_loss+surrogate_loss)
+        actor_grad = tape.gradient(loss, self.actor.get_variable())
         # print(actor_grad)
         self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.get_variable()))
 
-        return actor_loss
+        return surrogate_loss
+
+    @tf.function
+    def cal_loss(self, state, action, advantage, target, old_prob):
+        if self.hyper_parameters.clip_critic_value:
+            v = self.critic(state)
+            surrogate1 = tf.square(v[1:] - target[1:])
+            surrogate2 = tf.square(
+                tf.clip_by_value(v[1:], v[:-1] - self.hyper_parameters.clip_ratio,
+                                 v[:-1] + self.hyper_parameters.clip_ratio) - target[1:])
+            critic_loss = tf.reduce_mean(tf.minimum(surrogate1, surrogate2))
+        else:
+            v = self.critic(state)
+            critic_loss = tf.reduce_mean(tf.square(target - v))
+
+        mu, sigma = self.actor(state)
+        pi = tfp.distributions.Normal(mu, sigma)
+        new_prob = tf.clip_by_value(pi.prob(action), 1e-6, 1)
+        ratio = new_prob / old_prob
+        surrogate_loss = tf.reduce_mean(
+            tf.minimum(
+                ratio * advantage,
+                tf.clip_by_value(ratio, 1 - self.hyper_parameters.clip_ratio,
+                                 1 + self.hyper_parameters.clip_ratio) * advantage
+            )
+        )
+        entropy_loss = -tf.reduce_mean(new_prob * tf.math.log(new_prob))
+
+        actor_loss = -(entropy_loss + surrogate_loss)
+
+        return critic_loss, actor_loss, surrogate_loss, entropy_loss

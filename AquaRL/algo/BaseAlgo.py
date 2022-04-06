@@ -18,7 +18,10 @@ class BaseAlgo(abc.ABC):
         log_dir = self.work_space + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         self.min_summary_writer = tf.summary.create_file_writer(log_dir + "/min")
         self.max_summary_writer = tf.summary.create_file_writer(log_dir + "/max")
-        self.main_summary_writer = tf.summary.create_file_writer(log_dir + "/average")
+        self.average_summary_writer = tf.summary.create_file_writer(log_dir + "/average")
+        self.main_summary_writer = tf.summary.create_file_writer(log_dir + "/main")
+        self.before_summary_writer = tf.summary.create_file_writer(log_dir + "/training_before")
+        self.after_summary_writer = tf.summary.create_file_writer(log_dir + "/training_after")
 
         self.epoch = 0
 
@@ -53,18 +56,17 @@ class BaseAlgo(abc.ABC):
     def optimize(self):
         # print(self.data_pool.prob_buffer)
 
-        with self.main_summary_writer.as_default():
+        with self.average_summary_writer.as_default():
             tf.summary.scalar("Reward", self.data_pool.get_average_reward, step=self.epoch)
         with self.max_summary_writer.as_default():
             tf.summary.scalar("Reward", self.data_pool.get_max_reward, step=self.epoch)
         with self.min_summary_writer.as_default():
             tf.summary.scalar("Reward", self.data_pool.get_min_reward, step=self.epoch)
+        with self.main_summary_writer.as_default():
+            tf.summary.scalar("Reward/std", self.data_pool.get_std_reward, step=self.epoch)
 
         print("_______________epoch:{}____________________".format(self.epoch))
-        print("Training:")
-        print("Average reward:{}".format(self.data_pool.get_average_reward))
-        print("Min reward:{}".format(self.data_pool.get_min_reward))
-        print("Max reward:{}".format(self.data_pool.get_max_reward))
+        self.data_pool.traj_info()
 
         self._optimize()
 

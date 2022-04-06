@@ -2,7 +2,6 @@ import abc
 import logging
 import numpy as np
 import tensorflow as tf
-from copy import deepcopy
 
 
 class BasePool(abc.ABC):
@@ -95,6 +94,10 @@ class BasePool(abc.ABC):
     def get_min_reward(self):
         return np.min(self.episode_reward_buffer)
 
+    @property
+    def get_std_reward(self):
+        return np.std(self.episode_reward_buffer)
+
     @staticmethod
     def convert_to_tensor(data):
         # out = deepcopy(data)
@@ -105,3 +108,11 @@ class BasePool(abc.ABC):
         logging.info("observation_buffer's shape:{}".format(self.observation_buffer.shape))
         logging.info("action_buffer's shape:{}".format(self.action_buffer.shape))
         logging.basicConfig(level=logging.WARNING)
+
+    def traj_info(self):
+        print("Trajectory information:")
+        print("Numbers:{}".format(self.epochs))
+        print("Max reward:{}".format(self.get_min_reward))
+        print("Min reward:{}".format(self.get_max_reward))
+        print("Average reward:{}".format(self.get_average_reward))
+        print("Std reward:{}".format(self.get_std_reward))

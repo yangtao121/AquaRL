@@ -51,7 +51,8 @@ env_args = EnvArgs(
 
 hyper_parameter = PPOHyperParameters(
     batch_size=200,
-    update_steps=10
+    update_steps=10,
+    entropy_coefficient=0.01
 )
 
 actor = mlp(
@@ -72,6 +73,6 @@ value_net = mlp(
 policy = GaussianPolicy(out_shape=1, model=actor, file_name='policy')
 critic = CriticPolicy(model=value_net, file_name='critic')
 
-ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'test', env_args)
+ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'test2', env_args)
 ppo.train()
 ppo.close_shm()

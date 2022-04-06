@@ -30,6 +30,7 @@ class PPOHyperParameters:
                  gamma=0.99,
                  lambada=0.95,
                  tolerance=1e-6,
+                 entropy_coefficient=0,
                  reward_scale=False,
                  scale=False,
                  center=False,
@@ -52,6 +53,7 @@ class PPOHyperParameters:
         self.scale = scale
         self.center_adv = center_adv
         self.batch_size = batch_size
+        self.entropy_coefficient = 0
 
 
 class GAILParameters:
