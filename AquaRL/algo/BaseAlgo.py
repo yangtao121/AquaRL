@@ -25,6 +25,8 @@ class BaseAlgo(abc.ABC):
 
         self.epoch = 0
 
+        self.write_parameter()
+
     def cal_discount_reward(self, rewards, mask):
         discount_rewards = []
         mask_ = mask[::-1]
@@ -76,5 +78,12 @@ class BaseAlgo(abc.ABC):
     def _optimize(self):
         """
         update model, when you rewrite this part you can add tf.function
+        :return:
+        """
+
+    @abc.abstractmethod
+    def write_parameter(self):
+        """
+        recorde parameters
         :return:
         """

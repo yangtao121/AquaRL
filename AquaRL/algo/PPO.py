@@ -140,12 +140,12 @@ class PPO(BaseAlgo):
             )
             entropy_loss = -tf.reduce_mean(new_prob * tf.math.log(new_prob))
 
-            loss = -(entropy_loss+surrogate_loss)
+            loss = -(entropy_loss * self.hyper_parameters.entropy_coefficient + surrogate_loss)
         actor_grad = tape.gradient(loss, self.actor.get_variable())
         # print(actor_grad)
         self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.get_variable()))
 
-        return surrogate_loss
+        return loss
 
     @tf.function
     def cal_loss(self, state, action, advantage, target, old_prob):
@@ -175,4 +175,29 @@ class PPO(BaseAlgo):
 
         actor_loss = -(entropy_loss + surrogate_loss)
 
-        return critic_loss, actor_loss, surrogate_loss, entropy_loss
+        return critic_loss, -actor_loss, surrogate_loss, entropy_loss
+
+    def write_parameter(self):
+        with self.main_summary_writer.as_default():
+            clip_ratio = 'clip ratio:{}\n'.format(self.hyper_parameters.clip_ratio)
+            actor_learning_rate = 'actor learning rate:{}'.format(self.hyper_parameters.policy_learning_rate)
+            critic_learning_rate = 'critic learning rate:{}'.format(self.hyper_parameters.critic_learning_rate)
+            batch_size = 'batch size:{}'.format(self.hyper_parameters.batch_size)
+            update_times = 'update times:{}'.format(self.hyper_parameters.update_steps)
+            gamma = 'gamma:{}'.format(self.hyper_parameters.gamma)
+            lambada = 'lambada:{}'.format(self.hyper_parameters.lambada)
+            tolerance = 'tolerance:{}'.format(self.hyper_parameters.tolerance)
+            entropy_coefficient = 'entropy coefficient:{}'.format(self.hyper_parameters.entropy_coefficient)
+            reward_scale = 'use reward scale:{}'.format(self.hyper_parameters.reward_scale)
+            center_adv = 'use center adv:{}'.format(self.hyper_parameters.center_adv)
+            tf.summary.text('PPO_parameter', clip_ratio, step=self.epoch)
+            tf.summary.text('PPO_parameter', actor_learning_rate, step=self.epoch)
+            tf.summary.text('PPO_parameter', critic_learning_rate, step=self.epoch)
+            tf.summary.text('PPO_parameter', batch_size, step=self.epoch)
+            tf.summary.text('PPO_parameter', update_times, step=self.epoch)
+            tf.summary.text('PPO_parameter', gamma, step=self.epoch)
+            tf.summary.text('PPO_parameter', lambada, step=self.epoch)
+            tf.summary.text('PPO_parameter', tolerance, step=self.epoch)
+            tf.summary.text('PPO_parameter', entropy_coefficient, step=self.epoch)
+            tf.summary.text('PPO_parameter', reward_scale, step=self.epoch)
+            tf.summary.text('PPO_parameter', center_adv, step=self.epoch)

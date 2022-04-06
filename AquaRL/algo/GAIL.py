@@ -61,3 +61,11 @@ class GAIL(BaseAlgo):
         self.discriminator_optimizer.apply_gradients(zip(grad, self.discriminator.get_variable()))
 
         return loss
+
+    def write_parameter(self):
+        learning_rate = 'learning rate:{}'.format(self.hyper_parameters.learning_rate)
+        update_times = 'update times:{}'.format(self.hyper_parameters.update_times)
+
+        with self.main_summary_writer.as_default():
+            tf.summary.text('GAIL', learning_rate, step=self.epoch)
+            tf.summary.text('GAIL', update_times, step=self.epoch)

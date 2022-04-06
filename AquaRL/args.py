@@ -53,7 +53,7 @@ class PPOHyperParameters:
         self.scale = scale
         self.center_adv = center_adv
         self.batch_size = batch_size
-        self.entropy_coefficient = 0
+        self.entropy_coefficient = entropy_coefficient
 
 
 class GAILParameters:
