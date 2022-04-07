@@ -49,6 +49,7 @@ ppo = PPO(
     actor=policy,
     critic=critic
 )
+
 worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy)
 evaluate_worker = EvaluateWorker(200, 10, env, policy)
 max_mark = -1e6
