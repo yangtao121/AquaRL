@@ -13,6 +13,7 @@ from AquaRL.args import PPOHyperParameters, EnvArgs
 from AquaRL.policy.GaussianPolicy import GaussianPolicy
 from AquaRL.policy.CriticPolicy import CriticPolicy
 from AquaRL.neural import mlp
+import atexit
 
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
@@ -43,22 +44,25 @@ else:
 
 # print("ok")
 
-env = gym.make("Pendulum-v0")
+env = gym.make("LunarLanderContinuous-v2")
 observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 env_args = EnvArgs(
-    total_steps=400,
-    max_steps=200,
-    epochs=100,
+    total_steps=1000,
+    max_steps=1000,
+    epochs=300,
     observation_dims=observation_dims,
     action_dims=action_dims,
-    worker_num=size-1
+    worker_num=size - 1
 )
 
 hyper_parameter = PPOHyperParameters(
-    batch_size=200,
+    batch_size=128,
     update_steps=10,
-    entropy_coefficient=0.01
+    entropy_coefficient=0.01,
+    clip_ratio=0.15,
+    # policy_learning_rate=3e-5,
+    # critic_learning_rate=5e-5
 )
 
 actor = mlp(
@@ -79,11 +83,18 @@ value_net = mlp(
 policy = GaussianPolicy(out_shape=1, model=actor, file_name='policy')
 critic = CriticPolicy(model=value_net, file_name='critic')
 
+# def action_fun(x):
+#     return 2 * x
 
-def action_fun(x):
-    return 2 * x
+
+ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'LunarLanderContinuous', env_args, action_fun=None)
 
 
-ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'Pendulum-PPO', env_args, action_fun=action_fun)
+@atexit.register
+def clean():
+    print("memory clean!")
+    ppo.close_shm()
+
+
 ppo.train()
 ppo.close_shm()

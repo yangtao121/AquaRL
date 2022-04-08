@@ -1,5 +1,5 @@
 import gym
 
-env = gym.make("Acrobot-v1")
+env = gym.make("LunarLanderContinuous-v2")
 
 print(env.action_space)
