@@ -29,14 +29,15 @@ class PPO(BaseAlgo):
         if self.discriminator is None:
             tf.reward_buffer = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer)
         else:
-            tf.reward_buffer = tf.math.log(self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer))
+            tf.reward_buffer = tf.math.log(
+                self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer))
 
         gae, target = self.cal_gae_target(self.data_pool.reward_buffer, tf_values_buffer.numpy(),
                                           self.data_pool.mask_buffer)
         tf_gae = self.data_pool.convert_to_tensor(gae)
         tf_target = self.data_pool.convert_to_tensor(target)
 
-        max_steps = self.data_pool.max_steps
+        max_steps = self.data_pool.total_steps
         # print(max_steps)
 
         critic_loss, actor_loss, surrogate_loss, entropy_loss = self.cal_loss(tf_observation_buffer, tf_action_buffer,

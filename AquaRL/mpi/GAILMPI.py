@@ -23,7 +23,7 @@ class GAILPPO(BaseMPI):
                 actor=actor,
                 critic=critic,
                 works_pace=work_space,
-                discriminator=discriminator
+                discriminator=discriminator,
             )
 
             self.gail = GAIL(
@@ -35,7 +35,7 @@ class GAILPPO(BaseMPI):
             )
 
         else:
-            self.worker = Worker(env, env_args, self.sub_data_pool, actor, action_fun)
+            self.worker = Worker(env, env_args, self.sub_data_pool, actor, True, action_fun)
 
         self.comm.Barrier()
 
@@ -46,7 +46,7 @@ class GAILPPO(BaseMPI):
             else:
                 self.ppo.actor.save_weights(self.cache_path)
                 std = self.actor.get_std()
-                print("main std:{},{}".format(i, self.actor.get_std()))
+                print("main std:{}".format(self.actor.get_std()))
 
             self.comm.Bcast(std, root=0)
             self.comm.Barrier()

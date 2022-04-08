@@ -21,49 +21,26 @@ class PPOMPI(BaseMPI):
             )
 
         else:
-            self.worker = Worker(env, env_args, self.sub_data_pool, actor, action_fun)
+            self.worker = Worker(env, env_args, self.sub_data_pool, actor, True, action_fun)
 
         # self.train()
 
     def train(self):
         for i in range(self.env_args.epochs):
             if self.rank > 0:
-                std = np.empty(self.env_args.action_dims,dtype=np.float32)
-                # send_wait = i
+                std = np.empty(self.env_args.action_dims, dtype=np.float32)
             else:
                 self.ppo.actor.save_weights(self.cache_path)
                 std = self.actor.get_std()
-                # recv_wait = np.zeros((self.size - 1, 1), dtype=np.float32)
-
             self.comm.Bcast(std, root=0)
-            # self.comm.Gather(sendbuf, recvbuf, root=0)
             self.comm.Barrier()
 
             if self.rank > 0:
                 self.worker.policy.load_weights(self.cache_path)
                 self.actor.set_std(std)
-                # print("sub std:{},{}".format(i, self.actor.get_std()))
                 self.worker.sample()
-                # print(self.sub_data_pool.prob_buffer)
-
-            # self.comm.Gather(sendbuf, recvbuf, root=0)
             self.comm.Barrier()
 
             if self.rank == 0:
-                # self.main_data_pool.save_all_data(self.debug_path + '/' + 'main' + str(i))
-                # print(self.main_data_pool.prob_buffer)
                 self.ppo.optimize()
-                # print(self.rank)
-            # else:
-            #     print(self.sub_data_pool.prob_buffer)
-            # self.comm.Gather(sendbuf, recvbuf, root=0)
             self.comm.Barrier()
-
-            # if self.rank == 0:
-            #     self.main_data_pool.save_all_data(self.debug_path+'/'+'main'+str(i))
-            # else:
-            #     self.sub_data_pool.save_all_data(self.debug_path + '/'+'sub{}'.format(self.rank)+str(i))
-
-
-
-

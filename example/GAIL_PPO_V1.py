@@ -1,9 +1,9 @@
 import gym
-from AquaRL.worker.Worker import GAILWorker, EvaluateWorker, SampleWorker, Worker
+from AquaRL.worker.Worker import Worker
 from AquaRL.policy.GaussianPolicy import GaussianPolicy
 from AquaRL.policy.CriticPolicy import CriticPolicy
 from AquaRL.policy.Discriminator import Discriminator
-from AquaRL.neural import gaussian_mlp, mlp
+from AquaRL.neural import mlp
 from AquaRL.pool.LocalPool import LocalPool
 from AquaRL.args import PPOHyperParameters, EnvArgs, GAILParameters
 from AquaRL.algo.GAIL import GAIL
@@ -17,23 +17,25 @@ observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 
 env_args = EnvArgs(
-    trajs=20,
-    max_steps=200,
-    epochs=400,
     observation_dims=observation_dims,
-    action_dims=action_dims
+    action_dims=action_dims,
+    max_steps=200,
+    total_steps=4000,
+    epochs=150,
+    worker_num=1
 )
 
 env_args_expert = EnvArgs(
-    trajs=10,
+    total_steps=4000,
     max_steps=200,
     epochs=1,
     observation_dims=observation_dims,
-    action_dims=action_dims
+    action_dims=action_dims,
+    worker_num=1
 )
 
 hyper_parameter = PPOHyperParameters(
-    batch_size=200,
+    batch_size=128,
     update_steps=5
 )
 
@@ -68,16 +70,17 @@ discriminator = Discriminator(D)
 expert_policy = GaussianPolicy(action_dims)
 expert_policy.load_model('policy.h5')
 
-expert_data_pool = LocalPool(observation_dims, action_dims, env_args_expert.total_steps, env_args_expert.trajs)
+expert_data_pool = LocalPool(env_args=env_args_expert)
 
-sample_worker = SampleWorker(env, env_args_expert, expert_data_pool, expert_policy)
+sample_worker = Worker(env, env_args_expert, expert_data_pool, expert_policy, is_training=False)
 
 sample_worker.sample()
-sample_worker.INFO_sample()
+expert_data_pool.traj_info()
+# sample_worker.INFO_sample()
 
-data_pool = LocalPool(observation_dims, action_dims, env_args.total_steps, env_args.trajs)
+data_pool = LocalPool(env_args=env_args)
 
-worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy)
+worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy, is_training=True)
 
 ppo = PPO(
     hyper_parameters=hyper_parameter,

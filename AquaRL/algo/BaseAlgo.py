@@ -59,13 +59,25 @@ class BaseAlgo(abc.ABC):
         # print(self.data_pool.prob_buffer)
 
         with self.average_summary_writer.as_default():
-            tf.summary.scalar("Reward", self.data_pool.get_average_reward, step=self.epoch)
+            tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_average_reward, step=self.epoch)
         with self.max_summary_writer.as_default():
-            tf.summary.scalar("Reward", self.data_pool.get_max_reward, step=self.epoch)
+            tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_max_reward, step=self.epoch)
         with self.min_summary_writer.as_default():
-            tf.summary.scalar("Reward", self.data_pool.get_min_reward, step=self.epoch)
-        with self.main_summary_writer.as_default():
-            tf.summary.scalar("Reward/std", self.data_pool.get_std_reward, step=self.epoch)
+            tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_min_reward, step=self.epoch)
+
+        mean_len = self.data_pool.get_average_traj_len
+        max_len = self.data_pool.get_max_traj_len
+        min_len = self.data_pool.get_min_traj_len
+
+        if max_len == max_len:
+            pass
+        else:
+            with self.average_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Len", mean_len, step=self.epoch)
+            with self.max_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Len", max_len, step=self.epoch)
+            with self.min_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Len", min_len, step=self.epoch)
 
         print("_______________epoch:{}____________________".format(self.epoch))
         self.data_pool.traj_info()

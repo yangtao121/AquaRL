@@ -29,27 +29,19 @@ class BaseMPI:
         self.work_space = work_space
         self.debug_path = work_space + '/debug'
 
-        start_step_pointer = (self.rank - 1) * self.env_args.thread_step
-        start_epoch_pointer = (self.rank - 1) * self.env_args.trajs
-
         if self.rank == 0:
             mkdir(work_space)
             mkdir(self.history_model_path)
             mkdir(self.cache_path)
             mkdir(self.debug_path)
 
-            self.main_data_pool = MainThreadSharaMemery(env_args.observation_dims, env_args.action_dims,
-                                                        env_args.total_steps, env_args.epochs, env_args.total_trajs,
-                                                        work_space)
+            self.main_data_pool = MainThreadSharaMemery(env_args, work_space)
 
             self.main_data_pool.pool_info()
 
         else:
             time.sleep(15)
-            self.sub_data_pool = SubThreadShareMemery(env_args.observation_dims, env_args.action_dims,
-                                                      env_args.total_steps, start_step_pointer, env_args.thread_step,
-                                                      env_args.epochs, start_epoch_pointer, env_args.total_trajs,
-                                                      work_space)
+            self.sub_data_pool = SubThreadShareMemery(env_args, self.rank, work_space)
 
         self.comm.Barrier()
 
@@ -76,4 +68,3 @@ class BaseMPI:
             self.main_data_pool.close_shm()
         else:
             self.sub_data_pool.close_shm()
-
