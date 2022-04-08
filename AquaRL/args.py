@@ -1,23 +1,51 @@
+# class EnvArgs:
+#     def __init__(self, trajs, max_steps, epochs, observation_dims, action_dims,
+#                  multi_worker_num=None):
+#         if multi_worker_num is not None:
+#             self.total_steps = trajs * max_steps * multi_worker_num
+#             self.multi_worker_num = multi_worker_num
+#             self.thread_step = trajs * max_steps
+#             self.total_trajs = trajs * multi_worker_num
+#         else:
+#             self.total_steps = trajs * max_steps
+#             self.multi_worker_num = 1
+#             self.thread_step = self.total_steps
+#
+#         self.trajs = trajs
+#
+#         self.steps = max_steps
+#
+#         self.observation_dims = observation_dims
+#         self.action_dims = action_dims
+#         self.epochs = epochs
+
+
 class EnvArgs:
-    def __init__(self, trajs, max_steps, epochs, observation_dims, action_dims,
-                 multi_worker_num=None):
-        if multi_worker_num is not None:
-            self.total_steps = trajs * max_steps * multi_worker_num
-            self.multi_worker_num = multi_worker_num
-            self.thread_step = trajs*max_steps
-            self.total_trajs = trajs * multi_worker_num
-        else:
-            self.total_steps = trajs * max_steps
-            self.multi_worker_num = 1
-            self.thread_step = self.total_steps
+    def __init__(self, observation_dims, action_dims, max_steps, total_steps, epochs, worker_num):
+        """
 
-        self.trajs = trajs
-
-        self.steps = max_steps
-
+        :param max_steps: 一个轨迹最大的步数。
+        :param total_steps: 一个线程采样的最大步数
+        :param worker_num: worker的数目,单线程时数目为1
+        """
         self.observation_dims = observation_dims
         self.action_dims = action_dims
+        self.max_steps = max_steps
+        self.core_steps = total_steps
+        self.total_steps = total_steps*worker_num
+        self.worker_num = worker_num
         self.epochs = epochs
+
+    def sync_task(self, rank):
+        """
+        给每个进程分配详细的存储空间，比如说起始地址。
+        :param rank: 进程号
+        :return:
+        """
+        start_step_pointer = (rank - 1) * self.core_steps
+        summary_pointer = rank-1
+
+        return start_step_pointer, summary_pointer
 
 
 class PPOHyperParameters:
