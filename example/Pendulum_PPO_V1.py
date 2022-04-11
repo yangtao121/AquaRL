@@ -3,9 +3,9 @@ from AquaRL.args import PPOHyperParameters, EnvArgs
 from AquaRL.algo.PPO import PPO
 
 from AquaRL.worker.Worker import Worker
-from AquaRL.policy.GaussianPolicy import GaussianPolicy
+from AquaRL.policy.GaussianPolicy import GaussianPolicy, COAdaptiveStd
 from AquaRL.policy.CriticPolicy import CriticPolicy
-from AquaRL.neural import mlp
+from AquaRL.neural import mlp, gaussian_mlp
 from AquaRL.pool.LocalPool import LocalPool
 import tensorflow as tf
 import os
@@ -34,7 +34,7 @@ hyper_parameter = PPOHyperParameters(
     batch_size=200
 )
 
-actor = mlp(
+actor = gaussian_mlp(
     state_dims=env_args.observation_dims,
     output_dims=env_args.action_dims,
     hidden_size=(64, 64),
@@ -48,7 +48,7 @@ value_net = mlp(
     name='value'
 )
 
-policy = GaussianPolicy(out_shape=1, model=actor, file_name='policy')
+policy = COAdaptiveStd(out_shape=env_args.action_dims, model=actor, file_name='policy')
 critic = CriticPolicy(model=value_net, file_name='critic')
 
 data_pool = LocalPool(env_args=env_args)

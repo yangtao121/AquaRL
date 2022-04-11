@@ -1,5 +1,14 @@
-import gym
+# import gym
+#
+# env = gym.make("LunarLanderContinuous-v2")
+#
+# print(env.action_space)
+import numpy as np
+from AquaRL.neural import gaussian_mlp
 
-env = gym.make("LunarLanderContinuous-v2")
+mlp = gaussian_mlp(3, 1, (64, 64))
 
-print(env.action_space)
+a = np.ones(shape=(1, 3))
+
+[mu, sigma] = mlp(a)
+print(mu)

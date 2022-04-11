@@ -80,14 +80,12 @@ class PPO(BaseAlgo):
         print("Actor loss:{}".format(actor_loss))
         print("Surrogate loss:{}".format(surrogate_loss))
         print("Entropy loss:{}".format(entropy_loss))
-        print("main std:{}".format(self.actor.get_std()))
 
         with self.after_summary_writer.as_default():
             tf.summary.scalar('PPO/critic_loss', critic_loss, self.epoch)
             tf.summary.scalar('PPO/actor_loss', actor_loss, self.epoch)
             tf.summary.scalar('PPO/surrogate loss', surrogate_loss, self.epoch)
             tf.summary.scalar('PPO/entropy_loss', entropy_loss, self.epoch)
-            tf.summary.text('PPO info', 'std:{}'.format(self.actor.get_std()), self.epoch)
 
     @tf.function
     def train_critic(self, observation, target):
