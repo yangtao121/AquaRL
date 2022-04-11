@@ -32,7 +32,7 @@ class EnvArgs:
         self.action_dims = action_dims
         self.max_steps = max_steps
         self.core_steps = total_steps
-        self.total_steps = total_steps*worker_num
+        self.total_steps = total_steps * worker_num
         self.worker_num = worker_num
         self.epochs = epochs
 
@@ -43,7 +43,7 @@ class EnvArgs:
         :return:
         """
         start_step_pointer = (rank - 1) * self.core_steps
-        summary_pointer = rank-1
+        summary_pointer = rank - 1
 
         return start_step_pointer, summary_pointer
 
@@ -88,3 +88,10 @@ class GAILParameters:
     def __init__(self, learning_rate=3e-3, update_times=2):
         self.learning_rate = learning_rate
         self.update_times = update_times
+
+
+class BCParameter:
+    def __init__(self, batch_size=256, learning_rate=3e-3, update_times=2):
+        self.learning_rate = learning_rate
+        self.update_times = update_times
+        self.batch_size = batch_size
