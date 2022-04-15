@@ -2,15 +2,16 @@ from AquaRL.args import EnvArgs
 import numpy as np
 
 
+# TODO: is_distribution 替换为是否是distribution
 class Worker:
-    def __init__(self, env, env_args: EnvArgs, data_pool, policy, is_training=True, action_fun=None):
+    def __init__(self, env, env_args: EnvArgs, data_pool, policy, is_distribution=True, action_fun=None):
         """
         采样器，用于和环境互动。
         :param env: 环境。
         :param env_args: 环境参数。
         :param data_pool: 数据池。
         :param policy: 互动策略。
-        :param is_training: 是否是在训练。
+        :param is_distribution: 输出是否为分布。
         :param action_fun: 动作映射函数。
         """
         self.data_pool = data_pool
@@ -18,7 +19,17 @@ class Worker:
         self.env_args = env_args
         self.env = env
         self.action_fun = action_fun
-        self.is_training = is_training
+        self.is_distribution = is_distribution
+
+        if env_args.step_training:
+            self.total_run_steps = 0
+            self.traj_steps = 0
+            self.done = False
+            self.traj_num = 0
+            self.state = None
+            self.sum_reward = 0
+            self.reward_buffer = []
+            self.trajs_lens_buffer = []
 
     def sample(self):
         self.data_pool.rest_pointer()
@@ -35,7 +46,7 @@ class Worker:
 
         for i in range(self.env_args.core_steps):
             state = state.reshape(1, -1)
-            if self.is_training:
+            if self.is_distribution:
                 action, prob = self.policy.get_action(state)
             else:
                 action = self.policy.action(state)
@@ -82,6 +93,75 @@ class Worker:
             min_traj_len=min_traj_len,
             traj_num=traj_num
         )
+
+    def step(self):
+        """
+        与环境只交互一次,针对off-policy方式
+        :return:
+        """
+
+        if self.total_run_steps == 0:
+            self.state = self.env.reset()
+
+        self.state = self.state.reshape(1, -1)
+
+        if self.is_distribution:
+            action, prob = self.policy.get_action(self.state)
+        else:
+            action = self.policy.action(self.state)
+            prob = None
+
+        if self.action_fun is not None:
+            action_ = self.action_fun(action)
+        else:
+            action_ = action
+
+        state_, reward, done, _ = self.env.step(action_)
+
+        self.traj_steps += 1
+        self.total_run_steps += 1
+
+        self.sum_reward += reward
+
+        # if self.traj_steps<self.env_args.max_steps:
+        #     done = False
+        # else:
+        #     done = True
+
+        if not done and self.traj_steps < self.env_args.max_steps:
+            mask = 1
+        else:
+            mask = 0
+            self.traj_num += 1
+            self.reward_buffer.append(self.sum_reward)
+            self.trajs_lens_buffer.append(self.traj_num)
+            self.traj_steps = 0
+            self.sum_reward = 0
+
+            # print(self.reward_buffer)
+            mean = np.mean(self.reward_buffer)
+            max_reward = np.max(self.reward_buffer)
+            min_reward = np.min(self.reward_buffer)
+
+            self.data_pool.summary_trajs(
+                average_reward=mean,
+                max_reward=max_reward,
+                min_reward=min_reward,
+                average_traj_len=1,
+                max_traj_len=1,
+                min_traj_len=1,
+                traj_num=1
+            )
+
+            self.state = self.env.reset()
+
+            # done = True
+            self.reward_buffer = []
+            self.trajs_lens_buffer = []
+
+        self.data_pool.store(state_.reshape(1, -1), action, reward, mask, prob)
+        self.state = state_
+        return done
 
     # def sample(self):
     #
