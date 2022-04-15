@@ -5,11 +5,14 @@ import tensorflow as tf
 from AquaRL.args import EnvArgs
 
 
+# TODO: 需要针对buffer模式优化
 class BasePool(abc.ABC):
     def __init__(self, env_args: EnvArgs):
         self.observation_dims = env_args.observation_dims
         self.action_dims = env_args.action_dims
         self.total_steps = env_args.total_steps
+
+        self.env_args = env_args
 
         self.observation_buffer = None
         self.action_buffer = None
@@ -36,6 +39,8 @@ class BasePool(abc.ABC):
         self.last_pointer = 0
         self.summary_pointer = 0
 
+        self.traj_info_is_ok = False
+
     def store(self, observation, action, reward, mask, prob=None):
         self._store(observation, action, reward, mask, prob)
 
@@ -51,19 +56,23 @@ class BasePool(abc.ABC):
         :return:
         you can rewrite this part.
         """
-        self.observation_buffer[self.pointer] = observation
-        self.action_buffer[self.pointer] = action
-        self.reward_buffer[self.pointer] = reward
-        self.mask_buffer[self.pointer] = mask
+        index = self.pointer % self.total_steps
+        self.observation_buffer[index] = observation
+        self.action_buffer[index] = action
+        self.reward_buffer[index] = reward
+        self.mask_buffer[index] = mask
         if prob is not None and prob is not None:
-            self.prob_buffer[self.pointer] = prob
+            self.prob_buffer[index] = prob
         # print(self.prob_buffer[self.pointer], prob.numpy())
 
         self.pointer += 1
 
     def rest_pointer(self):
-        self.pointer = 0
+        if self.env_args.buffer_size is None:
+            self.pointer = 0
+
         self.last_pointer = 0
+        self.traj_info_is_ok = False
 
     def summary_trajs(self, average_reward, max_reward, min_reward, average_traj_len, max_traj_len, min_traj_len,
                       traj_num):
@@ -74,6 +83,8 @@ class BasePool(abc.ABC):
         self.max_traj_len_buffer[self.summary_pointer] = max_traj_len
         self.min_traj_len_buffer[self.summary_pointer] = min_traj_len
         self.traj_num_buffer[self.summary_pointer] = traj_num
+
+        self.traj_info_is_ok = True
 
     @staticmethod
     def save_data(data, file_name):

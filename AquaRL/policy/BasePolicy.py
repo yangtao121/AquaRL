@@ -43,3 +43,33 @@ class BasePolicy(abc.ABC):
         """
         获取模型的可训练参数
         """
+
+
+# TODO: 所有的policy风格按这个这个选择
+class OnlineTargetPolicy(abc.ABC):
+    def __init__(self, model: tf.keras.Model, policy_name=None):
+        self.online_model = model
+        self.target_model = tf.keras.models.clone_model(model)
+        self.policy_name = policy_name
+
+    def soft_update(self, tau):
+        new_weights = []
+        target_weight = self.target_model.weights
+
+        for i, weight in enumerate(self.online_model.weights):
+            new_weights.append(target_weight[i] * (1 - tau) + tau * weight)
+
+        self.target_model.set_weights(new_weights)
+
+    # @property
+    def get_variable(self):
+        return self.online_model.trainable_variables
+
+    def save_model(self, path=None):
+        tf.keras.models.save_model(self.online_model, path + '/' + self.policy_name + '_online_model.h5')
+        tf.keras.models.save_model(self.target_model, path + '/' + self.policy_name + '_target_model.h5')
+
+    def load_model(self, path=None):
+        tf.keras.models.load_model(path + '/' + self.policy_name + '_online_model.h5')
+        tf.keras.models.load_model(path + '/' + self.policy_name + '_target_model.h5')
+
