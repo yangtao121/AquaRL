@@ -17,7 +17,7 @@ if len(physical_devices) > 0:
         tf.config.experimental.set_memory_growth(physical_devices[k], True)
         print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
 
-env = gym.make("Pendulum-v0")
+env = gym.make("Pendulum-v1")
 observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 

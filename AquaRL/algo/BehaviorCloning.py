@@ -68,7 +68,7 @@ class BehaviorCloning(BaseAlgo):
 
         return mse
 
-    # @tf.function
+    @tf.function
     def cal_loss(self, observation, action):
         prediction = self.policy(observation)
         # print(prediction[0])
