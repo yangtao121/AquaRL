@@ -21,20 +21,36 @@
 
 
 class EnvArgs:
-    def __init__(self, observation_dims, action_dims, max_steps, total_steps, epochs, worker_num):
+    def __init__(self, observation_dims, action_dims, max_steps, epochs, total_steps=None, worker_num=None,
+                 buffer_size=None,
+                 step_training=False):
         """
 
         :param max_steps: 一个轨迹最大的步数。
         :param total_steps: 一个线程采样的最大步数
         :param worker_num: worker的数目,单线程时数目为1
+        :param buffer_size: off policy时会使用此方式, 此时部分参数被屏蔽, 并且此时这个也为超参数
         """
+        if worker_num is None:
+            self.worker_num = 1
+        else:
+            self.worker_num = worker_num
+
         self.observation_dims = observation_dims
         self.action_dims = action_dims
         self.max_steps = max_steps
         self.core_steps = total_steps
-        self.total_steps = total_steps * worker_num
-        self.worker_num = worker_num
+
+        # self.worker_num = worker_num
         self.epochs = epochs
+        self.step_training = step_training
+
+        self.buffer_size = buffer_size
+
+        if buffer_size is not None:
+            self.total_steps = buffer_size
+        else:
+            self.total_steps = total_steps * self.worker_num
 
     def sync_task(self, rank):
         """
@@ -95,3 +111,20 @@ class BCParameter:
         self.learning_rate = learning_rate
         self.update_times = update_times
         self.batch_size = batch_size
+
+
+class DDPGParameter:
+    def __init__(self,
+                 policy_learning_rate=0.001,
+                 critic_learning_rate=0.002,
+                 gamma=0.99,
+                 soft_update_ratio=0.01,
+                 buffer_size=5000,
+                 batch_size=64
+                 ):
+        self.policy_learning_rate = policy_learning_rate
+        self.critic_learning_rate = critic_learning_rate
+        self.gamma = gamma
+        self.soft_update_ratio = soft_update_ratio
+        self.batch_size = batch_size
+        self.buffer_size = buffer_size
