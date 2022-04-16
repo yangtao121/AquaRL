@@ -128,3 +128,20 @@ class DDPGParameter:
         self.soft_update_ratio = soft_update_ratio
         self.batch_size = batch_size
         self.buffer_size = buffer_size
+
+
+class ActorCriticBehaviorCloningParameter:
+    def __init__(self,
+                 policy_learning_rate=0.001,
+                 critic_learning_rate=0.002,
+                 gamma=0.99,
+                 soft_update_ratio=0.01,
+                 batch_size=64,
+                 buffer_size=5000,
+                 ):
+        self.policy_learning_rate = policy_learning_rate
+        self.critic_learning_rate = critic_learning_rate
+        self.gamma = gamma
+        self.soft_update_ratio = soft_update_ratio
+        self.batch_size = batch_size
+        self.buffer_size = buffer_size
