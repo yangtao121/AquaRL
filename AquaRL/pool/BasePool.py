@@ -15,6 +15,7 @@ class BasePool(abc.ABC):
         self.env_args = env_args
 
         self.observation_buffer = None
+        self.next_observation_buffer = None
         self.action_buffer = None
         self.reward_buffer = None  # store step reward
 
@@ -41,8 +42,8 @@ class BasePool(abc.ABC):
 
         self.traj_info_is_ok = False
 
-    def store(self, observation, action, reward, mask, prob=None):
-        self._store(observation, action, reward, mask, prob)
+    def store(self, observation, action, reward, mask, next_observation, prob=None):
+        self._store(observation, action, reward, mask, next_observation, prob)
 
     def get_data_slice(self, pointer, last_pointer):
         path = slice(last_pointer, pointer)
@@ -50,7 +51,7 @@ class BasePool(abc.ABC):
         reward = self.reward_buffer[path]
         return observation, reward
 
-    def _store(self, observation, action, reward, mask, prob):
+    def _store(self, observation, action, reward, mask, next_observation, prob):
         """
         store your data
         :return:
@@ -61,8 +62,10 @@ class BasePool(abc.ABC):
         self.action_buffer[index] = action
         self.reward_buffer[index] = reward
         self.mask_buffer[index] = mask
-        if prob is not None and prob is not None:
+        if prob is not None:
             self.prob_buffer[index] = prob
+        if next_observation is not None:
+            self.next_observation_buffer[index] = next_observation
         # print(self.prob_buffer[self.pointer], prob.numpy())
 
         self.pointer += 1

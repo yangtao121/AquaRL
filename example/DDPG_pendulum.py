@@ -28,20 +28,24 @@ env_args = EnvArgs(
     observation_dims=observation_dims,
     action_dims=action_dims,
     max_steps=200,
-    epochs=100,
+    epochs=300,
     buffer_size=50000,
     step_training=True,
     worker_num=1
 )
 
 hyper_parameter = DDPGParameter(
-    buffer_size=env_args.buffer_size
+    buffer_size=env_args.buffer_size,
+    batch_size=128,
+    soft_update_ratio=0.005,
+    # policy_learning_rate=0.0004,
+    # critic_learning_rate=0.0008
 )
 
 actor = mlp(
     state_dims=env_args.observation_dims,
     output_dims=env_args.action_dims,
-    hidden_size=(64, 64),
+    hidden_size=(256, 256),
     name='actor',
     output_activation='tanh'
 )
@@ -49,12 +53,12 @@ actor = mlp(
 q_value_net = state_action_mlp(
     state_dims=env_args.observation_dims,
     action_dims=env_args.action_dims,
-    hidden_size=(8, 64, 64)
+    hidden_size=(32, 256, 256),
 )
 
 noise = OrnsteinUhlenbeckActionNoise(
     mu=np.zeros(env_args.action_dims),
-    sigma=np.ones(env_args.action_dims)
+    sigma=np.ones(env_args.action_dims)*0.2
 )
 
 actor_policy = DeterminedPolicy(model=actor, noise=noise, policy_name='actor')
@@ -75,7 +79,7 @@ def action_fun(x):
 
 
 worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=actor_policy, action_fun=action_fun,
-                is_distribution=False)
+                is_training=True)
 
 done = False
 
@@ -85,4 +89,7 @@ for i in range(env_args.epochs):
     done = False
     while not done:
         done = worker.step()
-        ddpg.optimize()
+        q_loss, actor_loss = ddpg.optimize()
+
+    print("q loss:{}".format(q_loss))
+    print('actor loss:{}'.format(actor_loss))

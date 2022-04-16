@@ -26,13 +26,13 @@ class DDPG(BaseAlgo):
         self.train_times = 0
 
     def _optimize(self):
-        sample_range = min(self.data_pool.pointer, self.hyper_parameters.buffer_size - 1)
+        sample_range = min(self.data_pool.pointer, self.hyper_parameters.buffer_size)
         sample_index = np.random.choice(sample_range, self.hyper_parameters.batch_size)
 
         state_batch = self.data_pool.convert_to_tensor(self.data_pool.observation_buffer[sample_index])
         action_batch = self.data_pool.convert_to_tensor(self.data_pool.action_buffer[sample_index])
         reward_batch = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer[sample_index])
-        next_state_batch = self.data_pool.convert_to_tensor(self.data_pool.observation_buffer[sample_index + 1])
+        next_state_batch = self.data_pool.convert_to_tensor(self.data_pool.next_observation_buffer[sample_index])
 
         q_loss = self.train_critic(state_batch, next_state_batch, action_batch, reward_batch)
 
@@ -47,6 +47,8 @@ class DDPG(BaseAlgo):
 
         self.actor.soft_update(self.hyper_parameters.soft_update_ratio)
         self.critic.soft_update(self.hyper_parameters.soft_update_ratio)
+
+        return q_loss, actor_loss
 
     def optimize(self):
         if self.data_pool.traj_info_is_ok:
@@ -74,9 +76,9 @@ class DDPG(BaseAlgo):
                     tf.summary.scalar("Traj_Info/Len", min_len, step=self.epoch)
             self.data_pool.traj_info()
 
-        self._optimize()
+        q_loss, actor_loss = self._optimize()
 
-
+        return q_loss, actor_loss
 
     @tf.function
     def train_critic(self, state_batch, next_state_batch, action_batch, reward_batch, ):

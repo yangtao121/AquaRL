@@ -22,6 +22,13 @@ class DeterminedPolicy(OnlineTargetPolicy):
     def action(self, state):
         mu = self(state)
 
+        # action = mu + self.noise()
+
+        return mu
+
+    def get_action(self, state):
+        mu = self(state)
+
         action = mu + self.noise()
 
-        return action
+        return action, None
