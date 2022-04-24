@@ -57,8 +57,9 @@ bc = BehaviorCloning(
 )
 
 for i in range(env_args.epochs):
+    print("----------------epoch:{}--------------".format(i))
     sample_worker.sample()
-    bc.optimize()
+    bc._optimize()
     if (i+1) % 5 == 0:
         evaluator.sample()
         data_pool.traj_info()

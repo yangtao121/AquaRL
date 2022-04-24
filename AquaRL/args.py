@@ -107,10 +107,11 @@ class GAILParameters:
 
 
 class BCParameter:
-    def __init__(self, batch_size=256, learning_rate=3e-3, update_times=2):
+    def __init__(self, batch_size=256, learning_rate=3e-3, update_times=2, clip_ratio=0.01):
         self.learning_rate = learning_rate
         self.update_times = update_times
         self.batch_size = batch_size
+        self.clip_ratio = clip_ratio
 
 
 class DDPGParameter:
