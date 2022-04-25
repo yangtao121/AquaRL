@@ -33,8 +33,9 @@ class DDPG(BaseAlgo):
         action_batch = self.data_pool.convert_to_tensor(self.data_pool.action_buffer[sample_index])
         reward_batch = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer[sample_index])
         next_state_batch = self.data_pool.convert_to_tensor(self.data_pool.next_observation_buffer[sample_index])
+        mask_batch = self.data_pool.convert_to_tensor(self.data_pool.mask_buffer[sample_index])
 
-        q_loss = self.train_critic(state_batch, next_state_batch, action_batch, reward_batch)
+        q_loss = self.train_critic(state_batch, next_state_batch, action_batch, reward_batch, mask_batch)
 
         actor_loss = self.train_actor(state_batch)
 
@@ -81,10 +82,11 @@ class DDPG(BaseAlgo):
         return q_loss, actor_loss
 
     @tf.function
-    def train_critic(self, state_batch, next_state_batch, action_batch, reward_batch, ):
+    def train_critic(self, state_batch, next_state_batch, action_batch, reward_batch, mask_batch):
         with tf.GradientTape() as tape:
             target_actions = self.actor.target_action(next_state_batch)
-            y = reward_batch + self.hyper_parameters.gamma * self.critic.target_value(next_state_batch, target_actions)
+            y = reward_batch + self.hyper_parameters.gamma * mask_batch * self.critic.target_value(next_state_batch,
+                                                                                                   target_actions)
             critic_value = self.critic.online_value(state_batch, action_batch)
             critic_loss = tf.reduce_mean(tf.math.square(y - critic_value))
         critic_grad = tape.gradient(critic_loss, self.critic.get_variable())

@@ -6,6 +6,7 @@ from AquaRL.args import EnvArgs
 
 
 # TODO: 需要针对buffer模式优化
+# TODO: 加入同步机制
 class BasePool(abc.ABC):
     def __init__(self, env_args: EnvArgs):
         self.observation_dims = env_args.observation_dims

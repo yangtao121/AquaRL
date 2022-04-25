@@ -146,3 +146,28 @@ class ActorCriticBehaviorCloningParameter:
         self.soft_update_ratio = soft_update_ratio
         self.batch_size = batch_size
         self.buffer_size = buffer_size
+
+
+class TD3Parameter:
+    def __init__(self,
+                 policy_learning_rate=0.001,
+                 critic_learning_rate=0.002,
+                 policy_update_interval=3,
+                 explore_noise_scale=1.0,  # 这个参数给policy的
+                 eval_noise_scale=0.2,
+                 eval_noise_clip=0.5,
+                 soft_update_ratio=0.01,
+                 gamma=0.99,
+                 batch_size=64,
+                 buffer_size=5000
+                 ):
+        self.policy_learning_rate = policy_learning_rate
+        self.critic_learning_rate = critic_learning_rate
+        self.eval_noise_clip = eval_noise_clip
+        self.explore_noise_scale = explore_noise_scale
+        self.eval_noise_scale = eval_noise_scale
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.soft_update_ratio = soft_update_ratio
+        self.policy_update_interval = policy_update_interval
+        self.buffer_size = buffer_size

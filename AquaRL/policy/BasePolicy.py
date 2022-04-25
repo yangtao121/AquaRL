@@ -2,6 +2,7 @@ import tensorflow as tf
 import abc
 
 
+# TODO: 这个地方需要重新设计提升代码可重复使用特点
 class BasePolicy(abc.ABC):
     def __init__(self, model=None, file_name=None):
         self.Model = model
@@ -72,4 +73,3 @@ class OnlineTargetPolicy(abc.ABC):
     def load_model(self, path=None):
         tf.keras.models.load_model(path + '/' + self.policy_name + '_online_model.h5')
         tf.keras.models.load_model(path + '/' + self.policy_name + '_target_model.h5')
-
