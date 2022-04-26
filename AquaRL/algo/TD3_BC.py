@@ -8,7 +8,8 @@ import numpy as np
 # TD3的offline版本
 class TD3_BC(BaseAlgo):
 
-    def __init__(self, hyper_parameters: TD3Parameter, data_pool: LocalPool, actor_policy, q_policy1, q_policy2, noise,
+    def __init__(self, hyper_parameters: TD3Parameter, data_pool: LocalPool, test_data_pool, actor_policy, q_policy1,
+                 q_policy2, noise,
                  work_space):
         super().__init__(hyper_parameters=hyper_parameters, data_pool=data_pool, work_space=work_space)
 
@@ -16,6 +17,7 @@ class TD3_BC(BaseAlgo):
         self.q_policy1 = q_policy1
         self.q_policy2 = q_policy2
         self.noise = noise
+        self.test_data_pool = test_data_pool
 
         self.actor_optimizer = tf.optimizers.Adam(learning_rate=self.hyper_parameters.policy_learning_rate)
         self.critic_optimizer = tf.optimizers.Adam(learning_rate=self.hyper_parameters.critic_learning_rate)
@@ -80,41 +82,53 @@ class TD3_BC(BaseAlgo):
 
         q1_loss, q2_loss = self.train_critic(state_batch, action_batch, y)
 
+        with self.main_summary_writer.as_default():
+            tf.summary.scalar("TD3_BC/loss/q1", q1_loss, step=self.train_times)
+            tf.summary.scalar("TD3_BC/loss/q2", q2_loss, step=self.train_times)
+
         if self.train_times % self.hyper_parameters.policy_update_interval:
             self.actor_loss, self.mse_loss = self.train_actor(state_batch, action_batch)
             self.actor_policy.soft_update(self.hyper_parameters.soft_update_ratio)
             self.q_policy1.soft_update(self.hyper_parameters.soft_update_ratio)
             self.q_policy2.soft_update(self.hyper_parameters.soft_update_ratio)
 
+            with self.main_summary_writer.as_default():
+                tf.summary.scalar("TD3_BC/loss/actor_loss", self.actor_loss, step=self.train_times)
+                tf.summary.scalar("TD3_BC/loss/mse_loss", self.mse_loss, step=self.train_times)
+
         return q1_loss, q2_loss, self.actor_loss, self.mse_loss
 
-    def optimize(self):
-        # if self.data_pool.traj_info_is_ok:
-        #     self.epoch += 1
-        #     print("_______________epoch:{}____________________".format(self.epoch))
-        #     with self.average_summary_writer.as_default():
-        #         tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_average_reward, step=self.epoch)
-        #     with self.max_summary_writer.as_default():
-        #         tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_max_reward, step=self.epoch)
-        #     with self.min_summary_writer.as_default():
-        #         tf.summary.scalar("Traj_Info/Reward", self.data_pool.get_min_reward, step=self.epoch)
-        #
-        #     mean_len = self.data_pool.get_average_traj_len
-        #     max_len = self.data_pool.get_max_traj_len
-        #     min_len = self.data_pool.get_min_traj_len
-        #
-        #     if max_len == max_len:
-        #         pass
-        #     else:
-        #         with self.average_summary_writer.as_default():
-        #             tf.summary.scalar("Traj_Info/Len", mean_len, step=self.epoch)
-        #         with self.max_summary_writer.as_default():
-        #             tf.summary.scalar("Traj_Info/Len", max_len, step=self.epoch)
-        #         with self.min_summary_writer.as_default():
-        #             tf.summary.scalar("Traj_Info/Len", min_len, step=self.epoch)
-        # self.data_pool.traj_info()
-
+    def optimize(self, verbose=False):
         q1_loss, q2_loss, actor_loss, mse_loss = self._optimize()
+        if verbose:
+            self.epoch += 1
+            print("_______________epoch:{}____________________".format(self.epoch))
+            with self.average_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Reward", self.test_data_pool.get_average_reward, step=self.epoch)
+            with self.max_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Reward", self.test_data_pool.get_max_reward, step=self.epoch)
+            with self.min_summary_writer.as_default():
+                tf.summary.scalar("Traj_Info/Reward", self.test_data_pool.get_min_reward, step=self.epoch)
+
+            mean_len = self.data_pool.get_average_traj_len
+            max_len = self.data_pool.get_max_traj_len
+            min_len = self.data_pool.get_min_traj_len
+
+            if max_len == max_len:
+                pass
+            else:
+                with self.average_summary_writer.as_default():
+                    tf.summary.scalar("Traj_Info/Len", mean_len, step=self.epoch)
+                with self.max_summary_writer.as_default():
+                    tf.summary.scalar("Traj_Info/Len", max_len, step=self.epoch)
+                with self.min_summary_writer.as_default():
+                    tf.summary.scalar("Traj_Info/Len", min_len, step=self.epoch)
+            self.test_data_pool.traj_info()
+            print("q1 loss:{}".format(q1_loss))
+            print("q2 loss:{}".format(q2_loss))
+            print('actor loss:{}'.format(actor_loss))
+            print('mse_loss:{}'.format(mse_loss))
+        # self.data_pool.traj_info()
 
         return q1_loss, q2_loss, actor_loss, mse_loss
 

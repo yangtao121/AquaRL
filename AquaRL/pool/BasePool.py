@@ -3,6 +3,15 @@ import logging
 import numpy as np
 import tensorflow as tf
 from AquaRL.args import EnvArgs
+import os
+
+
+def mkdir(path):
+    current = os.getcwd()
+    path = current + '/' + path
+    flag = os.path.exists(path)
+    if flag is False:
+        os.mkdir(path)
 
 
 # TODO: 需要针对buffer模式优化
@@ -92,17 +101,17 @@ class BasePool(abc.ABC):
 
         self.traj_info_is_ok = True
 
-    @staticmethod
-    def save_data(data, file_name):
-        np.savetxt(file_name, data, delimiter=",")
+    # @staticmethod
+    # def save_data(data, file_name):
+    #     np.savetxt(file_name, data, delimiter=",")
 
-    def save_all_data(self, file_name):
-        self.save_data(self.reward_buffer, file_name + 'reward.csv')
-        self.save_data(self.observation_buffer, file_name + 'observation.csv')
-        if self.prob_buffer is not None:
-            self.save_data(self.prob_buffer, file_name + 'prob.csv')
-        self.save_data(self.action_buffer, file_name + 'action.csv')
-        self.save_data(self.mask_buffer, file_name + 'mask.csv')
+    # def save_all_data(self, file_name):
+    #     self.save_data(self.reward_buffer, file_name + 'reward.csv')
+    #     self.save_data(self.observation_buffer, file_name + 'observation.csv')
+    #     if self.prob_buffer is not None:
+    #         self.save_data(self.prob_buffer, file_name + 'prob.csv')
+    #     self.save_data(self.action_buffer, file_name + 'action.csv')
+    #     self.save_data(self.mask_buffer, file_name + 'mask.csv')
 
     @property
     def get_average_reward(self):
@@ -186,7 +195,7 @@ class BasePool(abc.ABC):
         mean = np.mean(self.observation_buffer)
         std = np.std(self.observation_buffer) + bias
 
-        state_buffer = (self.observation_buffer - mean)/std
+        state_buffer = (self.observation_buffer - mean) / std
 
         next_state_buffer = (self.next_observation_buffer - mean) / std
 
@@ -199,7 +208,21 @@ class BasePool(abc.ABC):
         mean = np.mean(self.reward_buffer)
         std = np.std(self.reward_buffer)
 
-        rewards = (self.reward_buffer - mean)/std
+        rewards = (self.reward_buffer - mean) / std
 
         return rewards
 
+    def save_data(self, space):
+        mkdir(space)
+        np.save(space + '/observation_buffer.npy', self.observation_buffer)
+        np.save(space + '/next_observation_buffer.npy', self.next_observation_buffer)
+        np.save(space + '/action_buffer.npy', self.action_buffer)
+        np.save(space + '/reward_buffer.npy', self.reward_buffer)
+        np.save(space + '/prob_buffer.npy', self.prob_buffer)
+
+    def load_data(self, space):
+        self.observation_buffer = np.load(space + '/observation_buffer.npy')
+        self.next_observation_buffer = np.load(space + '/next_observation_buffer.npy')
+        self.action_buffer = np.load(space + '/action_buffer.npy')
+        self.reward_buffer = np.load(space + '/reward_buffer.npy')
+        self.prob_buffer = np.load(space + '/prob_buffer.npy')

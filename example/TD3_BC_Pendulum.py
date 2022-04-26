@@ -29,7 +29,7 @@ env_args = EnvArgs(
     observation_dims=observation_dims,
     action_dims=action_dims,
     max_steps=200,
-    epochs=20000,
+    epochs=2000,
     buffer_size=100000,
     step_training=True,
     worker_num=1
@@ -102,6 +102,8 @@ test_worker = Worker(env=env, env_args=test_env_args, data_pool=test_data_pool, 
 
 worker.sample()
 data_pool.traj_info()
+data_pool.save_data('data')
+data_pool.load_data('data')
 
 
 def state_function(x):
@@ -113,21 +115,19 @@ def state_function(x):
 td3_bc = TD3_BC(
     hyper_parameters=hyper_parameter,
     data_pool=data_pool,
+    test_data_pool=test_data_pool,
     actor_policy=actor_policy,
     q_policy1=q1_policy,
     q_policy2=q2_policy,
     noise=eval_noise,
     work_space='td3_bc'
 )
+verbose = False
 
 for i in range(env_args.epochs):
+    verbose = False
     if (i + 1) % 20 == 0:
         test_worker.sample(state_function)
-        print("-----------------------------")
-        test_data_pool.traj_info()
-        print("q1 loss:{}".format(q1_loss))
-        print("q2 loss:{}".format(q2_loss))
-        print('actor loss:{}'.format(actor_loss))
-        print('mse_loss:{}'.format(mse_loss))
+        verbose = True
 
-    q1_loss, q2_loss, actor_loss, mse_loss = td3_bc.optimize()
+    q1_loss, q2_loss, actor_loss, mse_loss = td3_bc.optimize(verbose=verbose)
