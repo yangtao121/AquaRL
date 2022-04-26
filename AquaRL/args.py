@@ -39,7 +39,6 @@ class EnvArgs:
         self.observation_dims = observation_dims
         self.action_dims = action_dims
         self.max_steps = max_steps
-        self.core_steps = total_steps
 
         # self.worker_num = worker_num
         self.epochs = epochs
@@ -51,6 +50,16 @@ class EnvArgs:
             self.total_steps = buffer_size
         else:
             self.total_steps = total_steps * self.worker_num
+
+        if self.worker_num == 1:
+            self.core_steps = total_steps
+        else:
+            if total_steps is not None:
+                self.core_steps = total_steps
+            else:
+                self.core_steps = int(buffer_size/self.worker_num)
+
+        self.core_steps = self.total_steps
 
     def sync_task(self, rank):
         """
@@ -159,7 +168,13 @@ class TD3Parameter:
                  soft_update_ratio=0.01,
                  gamma=0.99,
                  batch_size=64,
-                 buffer_size=5000
+                 buffer_size=5000,
+                 # offline 版本的参数
+                 alpha=2.5,
+                 state_normalize=False,
+                 reward_normalize=False,
+                 stationary_buffer=False,
+                 bias=1e-3
                  ):
         self.policy_learning_rate = policy_learning_rate
         self.critic_learning_rate = critic_learning_rate
@@ -171,3 +186,9 @@ class TD3Parameter:
         self.soft_update_ratio = soft_update_ratio
         self.policy_update_interval = policy_update_interval
         self.buffer_size = buffer_size
+        self.alpha = alpha
+
+        self.state_normalize = state_normalize
+        self.stationary_buffer = stationary_buffer
+        self.reward_normalize = reward_normalize
+        self.bias = bias

@@ -58,7 +58,7 @@ q_value_net = state_action_mlp(
 
 noise = OrnsteinUhlenbeckActionNoise(
     mu=np.zeros(env_args.action_dims),
-    sigma=np.ones(env_args.action_dims)*0.2
+    sigma=np.ones(env_args.action_dims)*0.1
 )
 
 actor_policy = DeterminedPolicy(model=actor, noise=noise, policy_name='actor')

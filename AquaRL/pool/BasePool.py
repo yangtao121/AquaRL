@@ -9,6 +9,8 @@ from AquaRL.args import EnvArgs
 # TODO: 加入同步机制
 class BasePool(abc.ABC):
     def __init__(self, env_args: EnvArgs):
+        self.mean = None
+        self.std = None
         self.observation_dims = env_args.observation_dims
         self.action_dims = env_args.action_dims
         self.total_steps = env_args.total_steps
@@ -134,6 +136,24 @@ class BasePool(abc.ABC):
     def get_total_trajs(self):
         return np.sum(self.traj_num_buffer)
 
+    @property
+    def get_state_std(self):
+        if self.std is not None:
+            std = self.std
+        else:
+            std = np.std(self.observation_buffer)
+
+        return std
+
+    @property
+    def get_state_mean(self):
+        if self.mean is not None:
+            mean = self.mean
+        else:
+            mean = np.mean(self.observation_buffer)
+
+        return mean
+
     @staticmethod
     def convert_to_tensor(data):
         # out = deepcopy(data)
@@ -161,3 +181,25 @@ class BasePool(abc.ABC):
             print("Max trajs len:{}".format(max_len))
             print("Min trajs len:{}".format(min_len))
             print("Average trajs len:{}".format(mean_len))
+
+    def normalize_state(self, bias=1e-3):
+        mean = np.mean(self.observation_buffer)
+        std = np.std(self.observation_buffer) + bias
+
+        state_buffer = (self.observation_buffer - mean)/std
+
+        next_state_buffer = (self.next_observation_buffer - mean) / std
+
+        self.mean = mean
+        self.std = std
+
+        return state_buffer, next_state_buffer, mean, std
+
+    def normalize_reward(self):
+        mean = np.mean(self.reward_buffer)
+        std = np.std(self.reward_buffer)
+
+        rewards = (self.reward_buffer - mean)/std
+
+        return rewards
+

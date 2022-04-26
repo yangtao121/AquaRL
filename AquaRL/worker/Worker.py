@@ -31,7 +31,7 @@ class Worker:
             self.reward_buffer = []
             self.trajs_lens_buffer = []
 
-    def sample(self):
+    def sample(self, state_function=None):
         self.data_pool.rest_pointer()
 
         traj_num = 0
@@ -46,6 +46,8 @@ class Worker:
 
         for i in range(self.env_args.core_steps):
             state = state.reshape(1, -1)
+            if state_function is not None:
+                state = state_function(state)
             if self.is_training:
                 action, prob = self.policy.get_action(state)
             else:
