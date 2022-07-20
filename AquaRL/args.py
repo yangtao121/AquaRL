@@ -19,11 +19,26 @@
 #         self.action_dims = action_dims
 #         self.epochs = epochs
 
+class ModelArgs:
+    def __init__(self, using_lstm=False, num_rnn_layer=None, rnn_units=None):
+        """
+
+        :param using_lstm:
+        :param num_rnn_layer:int
+        :param rnn_units:tuple
+        """
+        self.using_lstm = using_lstm
+        self.num_rnn_layer = num_rnn_layer
+        self.rnn_units = rnn_units
+
 
 class EnvArgs:
     def __init__(self, observation_dims, action_dims, max_steps, epochs, total_steps=None, worker_num=None,
+                 model_args: ModelArgs = ModelArgs(),
                  buffer_size=None,
-                 step_training=False):
+                 step_training=False,
+                 train_rnn_r2d2=False,
+                 ):
         """
 
         :param max_steps: 一个轨迹最大的步数。
@@ -39,6 +54,10 @@ class EnvArgs:
         self.observation_dims = observation_dims
         self.action_dims = action_dims
         self.max_steps = max_steps
+
+        self.model_args = model_args
+
+        self.train_rnn_r2d2 = train_rnn_r2d2
 
         # self.worker_num = worker_num
         self.epochs = epochs
@@ -57,9 +76,9 @@ class EnvArgs:
             if total_steps is not None:
                 self.core_steps = total_steps
             else:
-                self.core_steps = int(buffer_size/self.worker_num)
+                self.core_steps = int(buffer_size / self.worker_num)
 
-        self.core_steps = self.total_steps
+        # self.core_steps = self.total_steps
 
     def sync_task(self, rank):
         """

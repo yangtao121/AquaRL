@@ -40,14 +40,14 @@ class BaseAlgo(abc.ABC):
 
         return discount_rewards
 
-    def cal_gae_target(self, rewards, values, mask):
+    def cal_gae_target(self, rewards, values, next_values, mask):
         gae = np.zeros_like(rewards)
         n_steps_target = np.zeros_like(rewards)
         cumulate_gae = 0
-        next_val = 0
+        # next_val = 0
 
         for i in reversed(range(0, len(rewards))):
-            delta = rewards[i] + self.hyper_parameters.gamma * next_val - values[i]
+            delta = rewards[i] + self.hyper_parameters.gamma * next_values[i] - values[i]
             cumulate_gae = self.hyper_parameters.gamma * self.hyper_parameters.lambada * cumulate_gae * mask[i] + delta
             gae[i] = cumulate_gae
             next_val = values[i]
