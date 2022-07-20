@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from AquaRL.args import EnvArgs
 import os
+from typing import overload
 
 
 def mkdir(path):
@@ -46,6 +47,14 @@ class BasePool(abc.ABC):
         self.max_traj_len_buffer = np.zeros((env_args.worker_num, 1), dtype=np.float32)
 
         self.traj_num_buffer = np.zeros((env_args.worker_num, 1), dtype=np.float32)
+        #
+        if self.env_args.train_rnn_r2d2:
+            if env_args.model_args.using_lstm:
+                self.hidden_buffer = np.zeros((env_args.total_steps, env_args.model_args.rnn_units * 2),
+                                              dtype=np.float32)
+            else:
+                self.hidden_buffer = np.zeros((env_args.total_steps, env_args.model_args.rnn_units),
+                                              dtype=np.float32)
 
         # counter
         self.pointer = 0  # indicate how much data you  store
@@ -63,13 +72,14 @@ class BasePool(abc.ABC):
         reward = self.reward_buffer[path]
         return observation, reward
 
+    # @overload
     def _store(self, observation, action, reward, mask, next_observation, prob):
         """
         store your data
         :return:
         you can rewrite this part.
         """
-        index = self.pointer % self.total_steps
+        index = self.pointer
         self.observation_buffer[index] = observation
         self.action_buffer[index] = action
         self.reward_buffer[index] = reward
@@ -81,6 +91,28 @@ class BasePool(abc.ABC):
         # print(self.prob_buffer[self.pointer], prob.numpy())
 
         self.pointer += 1
+
+    def store_rnn(self, observation, action, reward, mask, next_observation, prob, hidden):
+        index = self.pointer
+        self.observation_buffer[index] = observation
+        self.action_buffer[index] = action
+        self.reward_buffer[index] = reward
+        self.mask_buffer[index] = mask
+        if prob is not None:
+            self.prob_buffer[index] = prob
+        if next_observation is not None:
+            self.next_observation_buffer[index] = next_observation
+
+        if hidden is not None:
+            self.hidden_buffer[index] = hidden
+
+    # @overload
+    # def store(self, observation, action, reward, mask):
+    #     index = self.pointer
+    #     self.observation_buffer[index] = observation
+    #     self.action_buffer[index] = action
+    #     self.reward_buffer[index] = reward
+    #     self.mask_buffer[index] = mask
 
     def rest_pointer(self):
         if self.env_args.buffer_size is None:

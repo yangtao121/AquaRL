@@ -20,7 +20,7 @@ env_args = EnvArgs(
     observation_dims=observation_dims,
     action_dims=action_dims,
     max_steps=200,
-    total_steps=4000,
+    total_steps=8000,
     epochs=150,
     worker_num=1
 )

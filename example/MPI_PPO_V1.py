@@ -44,13 +44,14 @@ else:
 
 # print("ok")
 
-env = gym.make("LunarLanderContinuous-v2")
+# env = gym.make("LunarLanderContinuous-v2")
+env = gym.make("Pendulum-v0")
 observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 env_args = EnvArgs(
-    total_steps=1000,
-    max_steps=1000,
-    epochs=300,
+    total_steps=200,
+    max_steps=200,
+    epochs=100,
     observation_dims=observation_dims,
     action_dims=action_dims,
     worker_num=size - 1
@@ -59,10 +60,10 @@ env_args = EnvArgs(
 hyper_parameter = PPOHyperParameters(
     batch_size=128,
     update_steps=10,
-    entropy_coefficient=0.01,
-    clip_ratio=0.15,
-    # policy_learning_rate=3e-5,
-    # critic_learning_rate=5e-5
+    entropy_coefficient=0.05,
+    clip_ratio=0.2,
+    # policy_learning_rate=3e-4,
+    # critic_learning_rate=5e-4
 )
 
 actor = mlp(
@@ -76,18 +77,19 @@ actor = mlp(
 value_net = mlp(
     state_dims=env_args.observation_dims,
     output_dims=1,
-    hidden_size=(32, 32),
+    hidden_size=(64, 64),
     name='value'
 )
 
 policy = GaussianPolicy(out_shape=1, model=actor, file_name='policy')
 critic = CriticPolicy(model=value_net, file_name='critic')
 
-# def action_fun(x):
-#     return 2 * x
+
+def action_fun(x):
+    return 2 * x
 
 
-ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'LunarLanderContinuous', env_args, action_fun=None)
+ppo = PPOMPI(hyper_parameter, policy, critic, env, comm, 'test_ppo6', env_args, action_fun=action_fun)
 
 
 @atexit.register

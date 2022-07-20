@@ -18,13 +18,14 @@ class PPO(BaseAlgo):
 
     def _optimize(self):
         tf_observation_buffer = self.data_pool.convert_to_tensor(self.data_pool.observation_buffer)
-        # tf_next_observation_buffer = self.data_pool.convert_to_tensor(self.data_pool.next_observation_buffer)
+        # print(self.data_pool.next_observation_buffer)
+        tf_next_observation_buffer = self.data_pool.convert_to_tensor(self.data_pool.next_observation_buffer)
 
         tf_values_buffer = self.critic.get_value(tf_observation_buffer)
         tf_action_buffer = self.data_pool.convert_to_tensor(self.data_pool.action_buffer)
         tf_old_probs = self.data_pool.convert_to_tensor(self.data_pool.prob_buffer)
-        # tf_next_values_buffer = self.critic.get_value(tf_next_observation_buffer)
-
+        tf_next_values_buffer = self.critic.get_value(tf_next_observation_buffer)
+        #
         # tf_mask_buffer = self.data_pool.convert_to_tensor(self.data_pool.mask_buffer)
         if self.discriminator is None:
             tf.reward_buffer = self.data_pool.convert_to_tensor(self.data_pool.reward_buffer)
@@ -32,7 +33,7 @@ class PPO(BaseAlgo):
             tf.reward_buffer = tf.math.log(
                 self.discriminator.get_rewards_buffer(tf_observation_buffer, tf_action_buffer))
 
-        gae, target = self.cal_gae_target(self.data_pool.reward_buffer, tf_values_buffer.numpy(),
+        gae, target = self.cal_gae_target(self.data_pool.reward_buffer, tf_values_buffer.numpy(),tf_next_values_buffer.numpy(),
                                           self.data_pool.mask_buffer)
         tf_gae = self.data_pool.convert_to_tensor(gae)
         tf_target = self.data_pool.convert_to_tensor(target)

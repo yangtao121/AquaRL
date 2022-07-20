@@ -35,6 +35,9 @@ class MainThreadSharaMemery(BasePool):
         self.shm_observation = shared_memory.SharedMemory(create=True, size=observation_share.nbytes,
                                                           name=name + "_observation")
 
+        self.shm_next_observation = shared_memory.SharedMemory(create=True, size=observation_share.nbytes,
+                                                               name=name + "_next_observation")
+
         self.shm_action = shared_memory.SharedMemory(create=True, size=action_share.nbytes, name=name + "_action")
         self.shm_prob = shared_memory.SharedMemory(create=True, size=prob_share.nbytes, name=name + "_prob")
         self.shm_reward = shared_memory.SharedMemory(create=True, size=reward_share.nbytes, name=name + "_reward")
@@ -58,6 +61,9 @@ class MainThreadSharaMemery(BasePool):
 
         # create a NumPy array backed by shared memory
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
+
+        self.next_observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32,
+                                                  buffer=self.shm_next_observation.buf)
 
         self.action_buffer = np.ndarray(action_share.shape, dtype=np.float32, buffer=self.shm_action.buf)
         self.reward_buffer = np.ndarray(reward_share.shape, dtype=np.float32, buffer=self.shm_reward.buf)
@@ -83,12 +89,14 @@ class MainThreadSharaMemery(BasePool):
         del self.prob_buffer
         del self.reward_buffer
         del self.mask_buffer
+        del self.next_observation_buffer
 
         self.shm_observation.close()
         self.shm_action.close()
         self.shm_prob.close()
         self.shm_reward.close()
         self.shm_mask.close()
+        self.shm_next_observation.close()
 
         self.shm_observation.unlink()
         self.shm_reward.unlink()
@@ -129,6 +137,7 @@ class SubThreadShareMemery(BasePool):
         mask_share = np.zeros((self.total_steps, 1), dtype=np.float32)
 
         self.shm_observation = shared_memory.SharedMemory(name=name + '_observation')
+        self.shm_next_observation = shared_memory.SharedMemory(name=name + '_next_observation')
         self.shm_action = shared_memory.SharedMemory(name=name + "_action")
         self.shm_prob = shared_memory.SharedMemory(name=name + "_prob")
         self.shm_reward = shared_memory.SharedMemory(name=name + "_reward")
@@ -145,6 +154,10 @@ class SubThreadShareMemery(BasePool):
 
         # create a NumPy array backed by shared memory
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
+
+        self.next_observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32,
+                                                  buffer=self.shm_next_observation.buf)
+
         self.action_buffer = np.ndarray(action_share.shape, dtype=np.float32, buffer=self.shm_action.buf)
         self.reward_buffer = np.ndarray(reward_share.shape, dtype=np.float32, buffer=self.shm_reward.buf)
         self.prob_buffer = np.ndarray(prob_share.shape, dtype=np.float32, buffer=self.shm_prob.buf)
@@ -179,11 +192,14 @@ class SubThreadShareMemery(BasePool):
         del self.prob_buffer
         del self.reward_buffer
         del self.mask_buffer
+        del self.next_observation_buffer
+
         self.shm_observation.close()
         self.shm_action.close()
         self.shm_prob.close()
         self.shm_reward.close()
         self.shm_mask.close()
+        self.next_observation_buffer.close()
 
 # if __name__ == "__main__":
 #     pool = SubThreadShareMemery((64, 64, 1), 3, 200, 49, 50, 'test1')

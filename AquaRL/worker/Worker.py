@@ -61,6 +61,8 @@ class Worker:
 
             state_, reward, done, _ = self.env.step(action_)
 
+            # print(state_)
+
             traj_steps += 1
 
             sum_reward += reward
@@ -71,6 +73,78 @@ class Worker:
                 mask = 0
 
             self.data_pool.store(state, action, reward, mask, state_.reshape(1, -1), prob)
+
+            if not done and traj_steps < self.env_args.max_steps:
+                pass
+            else:
+                mask = 0
+                traj_num += 1
+                rewards_buffer.append(sum_reward)
+                trajs_lens_buffer.append(traj_steps)
+                traj_steps = 0
+                sum_reward = 0
+                state_ = self.env.reset()
+
+            state = state_
+
+        mean = np.mean(rewards_buffer)
+        max_reward = np.max(rewards_buffer)
+        min_reward = np.min(rewards_buffer)
+        avg_traj_len = np.average(trajs_lens_buffer)
+        max_traj_len = np.max(trajs_lens_buffer)
+        min_traj_len = np.min(trajs_lens_buffer)
+
+        self.data_pool.summary_trajs(
+            average_reward=mean,
+            max_reward=max_reward,
+            min_reward=min_reward,
+            average_traj_len=avg_traj_len,
+            max_traj_len=max_traj_len,
+            min_traj_len=min_traj_len,
+            traj_num=traj_num
+        )
+
+    def sample_rnn(self, state_function=None):
+        self.data_pool.rest_pointer()
+
+        traj_num = 0
+        traj_steps = 0
+
+        sum_reward = 0
+
+        rewards_buffer = []
+        trajs_lens_buffer = []
+
+        state = self.env.reset()
+
+        for i in range(self.env_args.core_steps):
+            state = state.reshape(1, -1)
+            if state_function is not None:
+                state = state_function(state)
+            if self.is_training:
+                action, prob, hidden_state = self.policy.get_action(state)
+            else:
+                action = self.policy.action(state)
+                prob = None
+                hidden_state = None
+
+            if self.action_fun is not None:
+                action_ = self.action_fun(action)
+            else:
+                action_ = action
+
+            state_, reward, done, _ = self.env.step(action_)
+
+            traj_steps += 1
+
+            sum_reward += reward
+
+            if not done and traj_steps < self.env_args.max_steps:
+                mask = 1
+            else:
+                mask = 0
+
+            self.data_pool.store_rnn(state, action, reward, mask, state_.reshape(1, -1), prob, hidden_state)
 
             if not done and traj_steps < self.env_args.max_steps:
                 pass
