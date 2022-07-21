@@ -106,14 +106,6 @@ class BasePool(abc.ABC):
         if hidden is not None:
             self.hidden_buffer[index] = hidden
 
-    # @overload
-    # def store(self, observation, action, reward, mask):
-    #     index = self.pointer
-    #     self.observation_buffer[index] = observation
-    #     self.action_buffer[index] = action
-    #     self.reward_buffer[index] = reward
-    #     self.mask_buffer[index] = mask
-
     def rest_pointer(self):
         if self.env_args.buffer_size is None:
             self.pointer = 0
@@ -132,18 +124,6 @@ class BasePool(abc.ABC):
         self.traj_num_buffer[self.summary_pointer] = traj_num
 
         self.traj_info_is_ok = True
-
-    # @staticmethod
-    # def save_data(data, file_name):
-    #     np.savetxt(file_name, data, delimiter=",")
-
-    # def save_all_data(self, file_name):
-    #     self.save_data(self.reward_buffer, file_name + 'reward.csv')
-    #     self.save_data(self.observation_buffer, file_name + 'observation.csv')
-    #     if self.prob_buffer is not None:
-    #         self.save_data(self.prob_buffer, file_name + 'prob.csv')
-    #     self.save_data(self.action_buffer, file_name + 'action.csv')
-    #     self.save_data(self.mask_buffer, file_name + 'mask.csv')
 
     @property
     def get_average_reward(self):

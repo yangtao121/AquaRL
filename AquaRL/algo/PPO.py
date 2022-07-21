@@ -6,8 +6,8 @@ import tensorflow_probability as tfp
 
 # TODO: clear data shape
 class PPO(BaseAlgo):
-    def __init__(self, hyper_parameters: PPOHyperParameters, data_pool, actor,
-                 critic, works_pace=None, discriminator=None):
+    def __init__(self, hyper_parameters: PPOHyperParameters, data_pool, actor=None,
+                 critic=None, works_pace=None, discriminator=None):
         super().__init__(hyper_parameters, data_pool, works_pace)
         self.actor = actor
         self.critic = critic
