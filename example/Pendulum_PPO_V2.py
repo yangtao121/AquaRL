@@ -1,13 +1,12 @@
 import gym
-from AquaRL.args import PPOHyperParameters, EnvArgs
+from AquaRL.args import PPOHyperParameters, ModelArgs, EnvArgs
 from AquaRL.algo.PPO import PPO
 
 from AquaRL.worker.Worker import Worker
-from AquaRL.policy.GaussianPolicy import GaussianPolicy, COAdaptiveStd
-from AquaRL.policy.CriticPolicy import CriticPolicy
-from AquaRL.neural import mlp, gaussian_mlp
+from AquaRL.policy.ShareActorCritic import GaussianActorCriticPolicy
 from AquaRL.pool.LocalPool import LocalPool
 import tensorflow as tf
+from model import ActorCritic
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -21,43 +20,41 @@ env = gym.make("Pendulum-v0")
 observation_dims = env.observation_space.shape[0]
 action_dims = env.action_space.shape[0]
 
+model_args = ModelArgs(
+    share_hidden_param=True
+)
+
 env_args = EnvArgs(
     observation_dims=observation_dims,
     action_dims=action_dims,
     max_steps=200,
     total_steps=4000,
     epochs=100,
-    worker_num=1
+    worker_num=1,
+    model_args=model_args
 )
 
 hyper_parameter = PPOHyperParameters(
-    batch_size=200
+    batch_size=128,
+    model_args=model_args,
+    c1=0.02,
+    c2=0.005
 )
 
-actor = gaussian_mlp(
-    state_dims=env_args.observation_dims,
-    output_dims=env_args.action_dims,
-    hidden_size=(64, 64),
-    name='actor'
-)
+actor_critic = ActorCritic()
 
-value_net = mlp(
-    state_dims=env_args.observation_dims,
-    output_dims=1,
-    hidden_size=(32, 32),
-    name='value'
-)
+# 初始化网络
+actor_critic(tf.random.normal((1, 3), dtype=tf.float32))
 
-policy = COAdaptiveStd(out_shape=env_args.action_dims, model=actor, file_name='policy')
-critic = CriticPolicy(model=value_net, file_name='critic')
+policy = GaussianActorCriticPolicy(1, model=actor_critic, file_name='actor_critic')
 
 data_pool = LocalPool(env_args=env_args)
 
 ppo = PPO(
     hyper_parameters=hyper_parameter,
     data_pool=data_pool,
-    actor=policy,
-    critic=critic,
+    actor_critic=policy,
+    works_pace='share_hidden'
 )
 
 
@@ -66,9 +63,7 @@ def action_fun(x):
 
 
 worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy, action_fun=action_fun)
-max_mark = -1e6
+
 for i in range(env_args.epochs):
     worker.sample()
     ppo.optimize()
-
-# policy.save_model('actor.h5')

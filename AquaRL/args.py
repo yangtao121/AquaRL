@@ -20,7 +20,7 @@
 #         self.epochs = epochs
 
 class ModelArgs:
-    def __init__(self, using_lstm=False, num_rnn_layer=None, rnn_units=None):
+    def __init__(self, using_lstm=False, num_rnn_layer=None, rnn_units=None, share_hidden_param=False):
         """
 
         :param using_lstm:
@@ -30,6 +30,7 @@ class ModelArgs:
         self.using_lstm = using_lstm
         self.num_rnn_layer = num_rnn_layer
         self.rnn_units = rnn_units
+        self.share_hidden_param = share_hidden_param
 
 
 class EnvArgs:
@@ -97,17 +98,21 @@ class PPOHyperParameters:
                  clip_ratio=0.2,
                  policy_learning_rate=3e-4,
                  critic_learning_rate=1e-3,
+                 actor_critic_learning_rate=2e-4,  # share network param
                  batch_size=32,
                  update_steps=10,
                  gamma=0.99,
                  lambada=0.95,
                  tolerance=1e-6,
                  entropy_coefficient=0,
+                 c1=0.5,  # share network param
+                 c2=0.05,  # share network param
                  reward_scale=False,
                  scale=False,
                  center=False,
                  center_adv=False,
-                 clip_critic_value=False
+                 clip_critic_value=False,
+                 model_args=ModelArgs()
                  ):
         """
         center in reward scale
@@ -126,6 +131,10 @@ class PPOHyperParameters:
         self.center_adv = center_adv
         self.batch_size = batch_size
         self.entropy_coefficient = entropy_coefficient
+        self.model_args = model_args
+        self.actor_critic_learning_rate = actor_critic_learning_rate
+        self.c1 = c1
+        self.c2 = c2
 
 
 class GAILParameters:

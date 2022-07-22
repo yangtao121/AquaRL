@@ -3,7 +3,7 @@ from AquaRL.policy.BasePolicy import BasePolicy
 import tensorflow_probability as tfp
 
 
-class GaussianActorCritic(BasePolicy):
+class GaussianActorCriticPolicy(BasePolicy):
     def __init__(self, out_shape, model=None, file_name=None):
         super().__init__(model=model, file_name=file_name)
         self.log_std = tf.Variable(tf.zeros((out_shape,)) - 0.5, trainable=True)
@@ -23,7 +23,7 @@ class GaussianActorCritic(BasePolicy):
 
     @tf.function
     def get_mu(self, obs):
-        return self.Model.action(obs)
+        return self.Model.actor(obs)
 
     @tf.function
     def noise_and_prob(self):
@@ -55,9 +55,18 @@ class GaussianActorCritic(BasePolicy):
     def action(self, obs):
         return self.get_mu(obs)
 
+    def actor(self, obs):
+        mu = self.get_mu(obs)
+        sigma = tf.exp(self.log_std)
+
+        return mu, sigma
+
+    @tf.function
+    def critic(self, obs):
+        return self.Model.critic(obs)
+
     @tf.function
     def get_value(self, obs):
-        v = self.Model.value(obs)
+        v = self.Model.critic(obs)
         v = tf.squeeze(v)
         return v
-
