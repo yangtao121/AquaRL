@@ -31,6 +31,12 @@ class MainThreadSharaMemery(BasePool):
         prob_share = np.zeros(action_share.shape, dtype=np.float32)
         mask_share = np.zeros((self.total_steps, 1), dtype=np.float32)
 
+        if self.env_args.model_args.r2d2:
+            self.shm_value = shared_memory.SharedMemory(create=True, size=self.value_buffer.nbytes,
+                                                        name=name + "_value")
+            self.shm_hidden = shared_memory.SharedMemory(create=True, size=self.hidden_buffer.nbytes,
+                                                         name=name + "_hidden")
+
         # create share memery
         self.shm_observation = shared_memory.SharedMemory(create=True, size=observation_share.nbytes,
                                                           name=name + "_observation")
@@ -60,6 +66,14 @@ class MainThreadSharaMemery(BasePool):
                                                        name=name + "_traj_num")
 
         # create a NumPy array backed by shared memory
+
+        if self.env_args.model_args.r2d2:
+            self.value_buffer = np.ndarray(self.value_buffer.shape, dtype=np.float32,
+                                           buffer=self.shm_value.buf)
+
+            self.hidden_buffer = np.ndarray(self.hidden_buffer.shape, dtype=np.float32,
+                                            buffer=self.shm_hidden.buf)
+
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
 
         self.next_observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32,
@@ -91,18 +105,27 @@ class MainThreadSharaMemery(BasePool):
         del self.mask_buffer
         del self.next_observation_buffer
 
+        if self.env_args.model_args.num_rnn_layer:
+            del self.value_buffer
+            del self.hidden_buffer
+
         self.shm_observation.close()
         self.shm_action.close()
         self.shm_prob.close()
         self.shm_reward.close()
         self.shm_mask.close()
         self.shm_next_observation.close()
+        self.shm_value.close()
+        self.shm_hidden.close()
 
         self.shm_observation.unlink()
         self.shm_reward.unlink()
         self.shm_action.unlink()
         self.shm_prob.unlink()
         self.shm_mask.unlink()
+        if self.env_args.model_args.num_rnn_layer:
+            self.shm_value.unlink()
+            self.shm_hidden.unlink()
 
 
 class SubThreadShareMemery(BasePool):
@@ -136,6 +159,12 @@ class SubThreadShareMemery(BasePool):
         prob_share = np.zeros(action_share.shape, dtype=np.float32)
         mask_share = np.zeros((self.total_steps, 1), dtype=np.float32)
 
+        if self.env_args.model_args.r2d2:
+            self.shm_value = shared_memory.SharedMemory(size=self.value_buffer.nbytes,
+                                                        name=name + "_value")
+            self.shm_hidden = shared_memory.SharedMemory(size=self.hidden_buffer.nbytes,
+                                                         name=name + "_hidden")
+
         self.shm_observation = shared_memory.SharedMemory(name=name + '_observation')
         self.shm_next_observation = shared_memory.SharedMemory(name=name + '_next_observation')
         self.shm_action = shared_memory.SharedMemory(name=name + "_action")
@@ -153,6 +182,14 @@ class SubThreadShareMemery(BasePool):
         self.shm_traj_num = shared_memory.SharedMemory(name=name + "_traj_num")
 
         # create a NumPy array backed by shared memory
+
+        if self.env_args.model_args.r2d2:
+            self.value_buffer = np.ndarray(self.value_buffer.shape, dtype=np.float32,
+                                           buffer=self.shm_value.buf)
+
+            self.hidden_buffer = np.ndarray(self.hidden_buffer.shape, dtype=np.float32,
+                                            buffer=self.shm_hidden.buf)
+
         self.observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32, buffer=self.shm_observation.buf)
 
         self.next_observation_buffer = np.ndarray(observation_share.shape, dtype=np.float32,
@@ -194,12 +231,20 @@ class SubThreadShareMemery(BasePool):
         del self.mask_buffer
         del self.next_observation_buffer
 
+        if self.env_args.model_args.num_rnn_layer:
+            del self.value_buffer
+            del self.hidden_buffer
+
         self.shm_observation.close()
         self.shm_action.close()
         self.shm_prob.close()
         self.shm_reward.close()
         self.shm_mask.close()
-        self.next_observation_buffer.close()
+        self.shm_next_observation.close()
+
+        if self.env_args.model_args.num_rnn_layer:
+            self.shm_value.unlink()
+            self.shm_hidden.unlink()
 
 # if __name__ == "__main__":
 #     pool = SubThreadShareMemery((64, 64, 1), 3, 200, 49, 50, 'test1')

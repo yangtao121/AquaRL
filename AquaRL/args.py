@@ -20,7 +20,11 @@
 #         self.epochs = epochs
 
 class ModelArgs:
-    def __init__(self, using_lstm=False, num_rnn_layer=None, rnn_units=None, share_hidden_param=False):
+    def __init__(self, using_lstm=False, num_rnn_layer=None,
+                 rnn_units=None, share_hidden_param=False,
+                 over_lap_size=40, burn_in=20, traj_len=120,
+                 r2d2=False
+                 ):
         """
 
         :param using_lstm:
@@ -31,6 +35,10 @@ class ModelArgs:
         self.num_rnn_layer = num_rnn_layer
         self.rnn_units = rnn_units
         self.share_hidden_param = share_hidden_param
+        self.over_lap_size = over_lap_size
+        self.burn_in = burn_in
+        self.traj_len = traj_len
+        self.r2d2 = r2d2
 
 
 class EnvArgs:

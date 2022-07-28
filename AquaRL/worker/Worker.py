@@ -118,16 +118,19 @@ class Worker:
 
         state = self.env.reset()
 
+        done = True
+
         for i in range(self.env_args.core_steps):
             state = state.reshape(1, -1)
             if state_function is not None:
                 state = state_function(state)
             if self.is_training:
-                action, prob, hidden_state = self.policy.get_action(state)
+                action, prob, hidden_state, value = self.policy.get_action(state, done)
             else:
                 action = self.policy.action(state)
                 prob = None
                 hidden_state = None
+                value = None
 
             if self.action_fun is not None:
                 action_ = self.action_fun(action)
@@ -145,12 +148,12 @@ class Worker:
             else:
                 mask = 0
 
-            self.data_pool.store_rnn(state, action, reward, mask, state_.reshape(1, -1), prob, hidden_state)
+            self.data_pool.store_rnn(state, action, reward, mask, state_.reshape(1, -1), prob, value, hidden_state)
 
             if not done and traj_steps < self.env_args.max_steps:
                 pass
             else:
-                mask = 0
+                done = True
                 traj_num += 1
                 rewards_buffer.append(sum_reward)
                 trajs_lens_buffer.append(traj_steps)

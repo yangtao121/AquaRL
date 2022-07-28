@@ -49,6 +49,7 @@ class BasePool(abc.ABC):
         self.traj_num_buffer = np.zeros((env_args.worker_num, 1), dtype=np.float32)
         #
         if self.env_args.train_rnn_r2d2:
+            self.value_buffer = np.zeros((self.total_steps, 1), dtype=np.float32)
             if env_args.model_args.using_lstm:
                 self.hidden_buffer = np.zeros((env_args.total_steps, env_args.model_args.rnn_units * 2),
                                               dtype=np.float32)
@@ -92,7 +93,7 @@ class BasePool(abc.ABC):
 
         self.pointer += 1
 
-    def store_rnn(self, observation, action, reward, mask, next_observation, prob, hidden):
+    def store_rnn(self, observation, action, reward, mask, next_observation, prob, value, hidden):
         index = self.pointer
         self.observation_buffer[index] = observation
         self.action_buffer[index] = action
@@ -103,8 +104,142 @@ class BasePool(abc.ABC):
         if next_observation is not None:
             self.next_observation_buffer[index] = next_observation
 
-        if hidden is not None:
-            self.hidden_buffer[index] = hidden
+        self.hidden_buffer[index] = hidden
+        self.value_buffer[index] = value
+
+        self.pointer += 1
+
+    def r2d2_data_process(self, input1=None, input2=None):
+        """
+        [batchsize,timestep,]
+        :return:
+        """
+        indexes = np.where(self.mask_buffer == 0)[0] + 1
+        # print(indexes)
+
+        start_index = 0
+
+        move_step = self.env_args.model_args.traj_len - self.env_args.model_args.over_lap_size
+
+        trajs_obs = []
+        trajs_act = []
+        trajs_reward = []
+        trajs_next_obs = []
+        trajs_prob = []
+        trajs_hidden = []
+        trajs_value = []
+
+        burn_ins_obs = []
+
+        trajs_input1 = None
+        trajs_input2 = None
+
+        if input1 is not None:
+            trajs_input1 = []
+        if input2 is not None:
+            trajs_input2 = []
+
+        for end_index in indexes:
+            data = self.slice_data(start_index, end_index)
+
+            observations = data['observations']
+            actions = data['actions']
+            rewards = data['rewards']
+            next_observations = data['next_observations']
+            probs = data['probs']
+            hiddens = data['hiddens']
+            values = data['values']
+            if input1 is not None:
+                inp1 = input1[start_index:end_index]
+            if input2 is not None:
+                inp2 = input2[start_index: end_index]
+
+            start_ind = 0
+            end_ind = start_ind + self.env_args.model_args.traj_len
+
+            while end_ind <= end_index:
+
+                traj_obs = observations[start_ind:end_ind]
+                traj_act = actions[start_ind: end_ind]
+                traj_reward = rewards[start_ind: end_ind]
+                traj_next_obs = next_observations[start_ind: end_ind]
+                traj_prob = probs[start_ind: end_ind]
+                traj_value = values[start_ind: end_ind]
+
+                if input1 is not None:
+                    traj_inp1 = inp1[start_ind:end_ind]
+                if input2 is not None:
+                    traj_inp2 = inp2[start_ind: end_ind]
+
+                burn_in_obs, traj_obs = np.split(traj_obs, (self.env_args.model_args.burn_in,))
+                _, traj_act = np.split(traj_act, (self.env_args.model_args.burn_in,))
+                _, traj_reward = np.split(traj_reward, (self.env_args.model_args.burn_in,))
+                _, traj_next_obs = np.split(traj_next_obs, (self.env_args.model_args.burn_in,))
+                _, traj_prob = np.split(traj_prob, (self.env_args.model_args.burn_in,))
+                _, traj_value = np.split(traj_value, (self.env_args.model_args.burn_in,))
+
+                if input1 is not None:
+                    _, traj_inp1 = np.split(traj_inp1, (self.env_args.model_args.burn_in,))
+                if input2 is not None:
+                    _, traj_inp2 = np.split(traj_inp2, (self.env_args.model_args.burn_in,))
+
+                if start_ind == 0:
+                    traj_hidden = np.zeros((1, self.env_args.model_args.rnn_units * 2))
+                else:
+                    traj_hidden = hiddens[start_ind - 1]
+
+                trajs_obs.append(np.expand_dims(traj_obs, axis=0))
+                burn_ins_obs.append(np.expand_dims(burn_in_obs, axis=0))
+                trajs_act.append(np.expand_dims(traj_act, axis=0))
+                trajs_reward.append(np.expand_dims(traj_reward, axis=0))
+                trajs_next_obs.append(np.expand_dims(traj_next_obs, axis=0))
+                trajs_prob.append(np.expand_dims(traj_prob, axis=0))
+                trajs_value.append(np.expand_dims(traj_value, axis=0))
+                trajs_hidden.append(traj_hidden)
+
+                if input1 is not None:
+                    trajs_input1.append(np.expand_dims(traj_inp1, axis=0))
+                if input2 is not None:
+                    trajs_input2.append(np.expand_dims(traj_inp2, axis=0))
+
+                start_ind = start_ind + move_step
+                end_ind = start_ind + self.env_args.model_args.traj_len
+
+        trajs_obs = np.vstack(trajs_obs)
+        trajs_act = np.vstack(trajs_act)
+        trajs_reward = np.vstack(trajs_reward)
+        trajs_next_obs = np.vstack(trajs_next_obs)
+        trajs_prob = np.vstack(trajs_prob)
+        trajs_hidden = np.vstack(trajs_hidden)
+
+        burn_ins_obs = np.vstack(burn_ins_obs)
+
+        trajs_value = np.vstack(trajs_value)
+
+        if input1 is not None:
+            trajs_input1 = np.vstack(trajs_input1)
+        if input2 is not None:
+            trajs_input2 = np.vstack(trajs_input2)
+
+        return trajs_obs, burn_ins_obs, trajs_act, trajs_reward, trajs_next_obs, trajs_prob, trajs_value, trajs_hidden, trajs_input1, trajs_input2
+
+    def slice_data(self, start_index, end_index):
+        observations = self.observation_buffer[start_index:end_index]
+        actions = self.action_buffer[start_index: end_index]
+        rewards = self.reward_buffer[start_index: end_index]
+        probs = self.prob_buffer[start_index: end_index]
+        next_observations = self.next_observation_buffer[start_index: end_index]
+
+        data = {'observations': observations, 'actions': actions, 'rewards': rewards,
+                'next_observations': next_observations, 'probs': probs}
+
+        if self.env_args.train_rnn_r2d2:
+            hiddens = self.hidden_buffer[start_index: end_index]
+            values = self.value_buffer[start_index: end_index]
+            data['hiddens'] = hiddens
+            data['values'] = values
+
+        return data
 
     def rest_pointer(self):
         if self.env_args.buffer_size is None:

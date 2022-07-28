@@ -82,6 +82,7 @@ class BaseAlgo(abc.ABC):
         print("_______________epoch:{}____________________".format(self.epoch))
         self.data_pool.traj_info()
 
+        # if self.hyper_parameters.u
         self._optimize()
 
         self.epoch += 1
@@ -92,6 +93,13 @@ class BaseAlgo(abc.ABC):
         update model, when you rewrite this part you can add tf.function
         :return:
         """
+
+    # @abc.abstractmethod
+    # def _optimize_r2d2(self):
+    #     """
+    #     r2d2 optimize
+    #     :return:
+    #     """
 
     @abc.abstractmethod
     def write_parameter(self):
