@@ -4,7 +4,7 @@ sys.path.append('../')
 import os
 import tensorflow as tf
 from mpi4py import MPI
-
+import numpy as np
 from AquaRL.mpi.PPOMPI import PPOMPI
 
 import gym
@@ -45,8 +45,9 @@ else:
 
 # env = gym.make("LunarLanderContinuous-v2")
 env = gym.make("Pendulum-v1")
-observation_dims = env.observation_space.shape[0]
+observation_dims = 2
 action_dims = env.action_space.shape[0]
+# action_dims = 2
 
 model_args = ModelArgs(
     using_lstm=True,
@@ -54,22 +55,22 @@ model_args = ModelArgs(
     num_rnn_layer=1,
     share_hidden_param=True,
     r2d2=True,
-    traj_len=80,
-    over_lap_size=30
+    traj_len=120,
+    over_lap_size=40
 )
 env_args = EnvArgs(
     observation_dims=observation_dims,
     action_dims=action_dims,
-    max_steps=300,
+    max_steps=200,
     total_steps=600,
-    epochs=1000,
+    epochs=200,
     worker_num=size - 1,
     model_args=model_args,
     train_rnn_r2d2=True
 )
 
 hyper_parameter = PPOHyperParameters(
-    # batch_size=128,
+    batch_size=256,
     model_args=model_args,
     c1=1,
     c2=0.001,
@@ -77,15 +78,23 @@ hyper_parameter = PPOHyperParameters(
     actor_critic_learning_rate=2e-3
 )
 
-actor_critic = LSTMActorCritic()
+actor_critic = LSTMActorCritic(size=observation_dims)
 
-actor_critic(tf.random.normal((1, 1, 3), dtype=tf.float32))
+actor_critic(tf.random.normal((1, 1, 2), dtype=tf.float32))
 
 policy = LSTMGaussianActorCritic(1, model=actor_critic, file_name='actor_critic')
 
 
 def action_fun(x):
     return 2 * x
+
+
+def state_fun(x):
+    x = np.squeeze(x)
+    x = x[:2]
+    # x = np.expand_dims(x, axis=0)
+    # print(x)
+    return x
 
 
 ppo = PPOMPI(
@@ -95,7 +104,7 @@ ppo = PPOMPI(
     env_args=env_args,
     actor_critic=policy,
     action_fun=action_fun,
-    work_space='r2d2_PPO4'
+    work_space='r2d2_POMDP2'
 )
 
 
@@ -105,5 +114,5 @@ def clean():
     ppo.close_shm()
 
 
-ppo.train()
+ppo.train(state_fun)
 ppo.close_shm()

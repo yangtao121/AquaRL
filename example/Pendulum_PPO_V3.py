@@ -1,4 +1,6 @@
 import gym
+import numpy as np
+
 from AquaRL.args import PPOHyperParameters, ModelArgs, EnvArgs
 from AquaRL.algo.PPO import PPO
 
@@ -17,8 +19,11 @@ if len(physical_devices) > 0:
         print('memory growth:', tf.config.experimental.get_memory_growth(physical_devices[k]))
 
 env = gym.make("Pendulum-v1")
-observation_dims = env.observation_space.shape[0]
+# observation_dims = env.observation_space.shape[0]
+env = gym.make("Pendulum-v1")
+observation_dims = 2
 action_dims = env.action_space.shape[0]
+# action_dims = 1
 
 # tf.compat.v1.disable_eager_execution()
 
@@ -49,9 +54,9 @@ hyper_parameter = PPOHyperParameters(
     actor_critic_learning_rate=2e-3
 )
 
-actor_critic = LSTMActorCritic()
+actor_critic = LSTMActorCritic(size=observation_dims)
 
-actor_critic(tf.random.normal((1, 1, 3), dtype=tf.float32))
+actor_critic(tf.random.normal((1, 1, 2), dtype=tf.float32))
 
 policy = LSTMGaussianActorCritic(1, model=actor_critic, file_name='actor_critic')
 data_pool = LocalPool(env_args=env_args)
@@ -67,8 +72,16 @@ def action_fun(x):
     return 2 * x
 
 
+def state_fun(x):
+    x = np.squeeze(x)
+    x = x[:2]
+    # x = np.expand_dims(x, axis=0)
+    # print(x)
+    return x
+
+
 worker = Worker(env=env, env_args=env_args, data_pool=data_pool, policy=policy, action_fun=action_fun)
 
 for i in range(env_args.epochs):
-    worker.sample_rnn()
+    worker.sample_rnn(state_fun)
     ppo.optimize()

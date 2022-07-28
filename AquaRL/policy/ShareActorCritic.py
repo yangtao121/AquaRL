@@ -102,7 +102,8 @@ class LSTMGaussianActorCritic(BasePolicy):
         return self.Model.trainable_variables + [self.log_std]
 
     def get_action(self, obs, done):
-        obs = tf.expand_dims(obs, axis=0)
+        # obs = tf.expand_dims(obs, axis=0)
+        obs = tf.reshape(obs, [1, 1, -1])
         # obs = tf.expand_dims(obs, axis=0)
         mu, value, hidden_state = self.Model(obs, done=done)
         a_std = tf.exp(self.log_std)

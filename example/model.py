@@ -43,10 +43,10 @@ class ActorCritic(tf.keras.Model):
 
 
 class LSTMActorCritic(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, size=3):
         super(LSTMActorCritic, self).__init__()
 
-        self.share_lstm = tf.keras.layers.LSTM(32, input_shape=(3,), return_sequences=True, return_state=True)
+        self.share_lstm = tf.keras.layers.LSTM(32, input_shape=(size,), return_sequences=True, return_state=True)
 
         self.actor_model = tf.keras.Sequential(
             [tf.keras.layers.Dense(64, activation='relu'),

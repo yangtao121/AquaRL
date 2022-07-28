@@ -158,7 +158,8 @@ class PPO(BaseAlgo):
         next_values = np.zeros_like(self.data_pool.value_buffer)
         next_values[:-1] = self.data_pool.value_buffer[1:]
 
-        gae, target = self.cal_gae_target((self.data_pool.reward_buffer+8)/8, self.data_pool.value_buffer, next_values,
+        gae, target = self.cal_gae_target((self.data_pool.reward_buffer + 8) / 8, self.data_pool.value_buffer,
+                                          next_values,
                                           self.data_pool.mask_buffer)
 
         trajs_obs, burn_ins_obs, trajs_act, trajs_reward, trajs_next_obs, trajs_prob, trajs_value, trajs_hidden, trajs_gaes, trajs_targets = self.data_pool.r2d2_data_process(
@@ -166,7 +167,8 @@ class PPO(BaseAlgo):
         tf_traj_hidden = self.data_pool.convert_to_tensor(trajs_hidden)
 
         if self.hyper_parameters.model_args.using_lstm:
-            tf_hidden = tf.split(tf_traj_hidden, 2, axis=1)
+            tf_hidden1, tf_hidden2 = tf.split(tf_traj_hidden, 2, axis=1)
+            tf_hidden = (tf_hidden1, tf_hidden2)
         else:
             tf_hidden = tf_traj_hidden
 
@@ -194,9 +196,30 @@ class PPO(BaseAlgo):
             tf.summary.scalar('PPO/total loss', total_loss, self.epoch)
 
         for _ in tf.range(0, self.hyper_parameters.update_steps):
-            self.train_actor_critic_r2d2(
-                traj_obs=tf_trajs_obs, traj_burn_in=tf_burn_ins_obs, traj_act=tf_trajs_act, traj_adv=tf_trajs_gae,
-                traj_target=tf_trajs_target, traj_prob=tf_trajs_prob, traj_hidden=tf_hidden)
+            start_pointer = 0
+            end_pointer = self.hyper_parameters.batch_size
+            max_step = trajs_obs.shape[0]
+            while end_pointer <= max_step - 1:
+                batch_traj_obs = tf_trajs_obs[start_pointer: end_pointer]
+                batch_traj_burn_in = tf_burn_ins_obs[start_pointer: end_pointer]
+                batch_traj_act = tf_trajs_act[start_pointer: end_pointer]
+                batch_traj_gae = tf_trajs_gae[start_pointer: end_pointer]
+                batch_traj_target = tf_trajs_target[start_pointer: end_pointer]
+                batch_traj_prob = tf_trajs_prob[start_pointer: end_pointer]
+                if self.hyper_parameters.model_args.using_lstm:
+                    batch_traj_hidden1 = tf_hidden1[start_pointer: end_pointer]
+                    batch_traj_hidden2 = tf_hidden2[start_pointer: end_pointer]
+                    batch_traj_hidden = (batch_traj_hidden1, batch_traj_hidden2)
+                else:
+                    batch_traj_hidden = tf_hidden[start_pointer: end_pointer]
+
+                self.train_actor_critic_r2d2(
+                    traj_obs=batch_traj_obs, traj_burn_in=batch_traj_burn_in, traj_act=batch_traj_act,
+                    traj_adv=batch_traj_gae,
+                    traj_target=batch_traj_target, traj_prob=batch_traj_prob, traj_hidden=batch_traj_hidden)
+
+                start_pointer = end_pointer
+                end_pointer = end_pointer + self.hyper_parameters.batch_size
 
         critic_loss, actor_surrogate_loss, actor_entropy_loss, total_loss = self.cal_actor_critic_r2d2_loss(
             traj_obs=tf_trajs_obs, traj_burn_in=tf_burn_ins_obs, traj_act=tf_trajs_act, traj_adv=tf_trajs_gae,

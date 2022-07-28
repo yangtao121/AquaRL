@@ -37,7 +37,7 @@ class PPOMPI(BaseMPI):
 
         # self.train()
 
-    def train(self):
+    def train(self, state_fun=None):
         for i in range(self.env_args.epochs):
             if self.rank > 0:
                 std = np.empty(self.env_args.action_dims, dtype=np.float32)
@@ -51,9 +51,9 @@ class PPOMPI(BaseMPI):
                 self.worker.policy.load_weights(self.cache_path)
                 self.actor.set_std(std)
                 if self.env_args.train_rnn_r2d2:
-                    self.worker.sample_rnn()
+                    self.worker.sample_rnn(state_fun)
                 else:
-                    self.worker.sample()
+                    self.worker.sample(state_fun)
             self.comm.Barrier()
 
             if self.rank == 0:
